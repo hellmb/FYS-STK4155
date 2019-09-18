@@ -7,8 +7,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from random import random, seed
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
-
+from sklearn.metrics import mean_squared_error, r2_score
 
 class RegressionAnalysis():
 
@@ -23,9 +22,6 @@ class RegressionAnalysis():
 
         # create meshgrid
         self.x, self.y = np.meshgrid(self.x, self.y)
-
-        # self.x = np.arange(0, 1, 0.05)
-        # self.y = np.arange(0, 1, 0.05)
 
     def FrankeFunction(self, x, y, noise=False):
         """
@@ -55,15 +51,16 @@ class RegressionAnalysis():
         input m: polynomial degree
         """
 
+        print('You are fitting a polynomial of degree %d' % m)
+
         # reshape x and y if they are multidimensional
         if len(x.shape) > 1:
-            print('x and y are in a meshgrid, and are being reshaped')
             x = np.ravel(x)
             y = np.ravel(y)
 
         n = len(x)
         l = int((m+1)*(m+2)/2)        # number of beta values
-        print('Dimension of design matrix: (%d x %d)' % (n, l))
+        print('Dimension of design matrix: (%d, %d)' % (n, l))
 
         # set up the design matrix
         X = np.ones((n, l))
@@ -105,37 +102,112 @@ class RegressionAnalysis():
         # compute predicted Franke function
         self.z_predict = np.dot(self.X,self.beta)
 
-        # return z_predict
+    def ConfidenceInterval(self, z, z_predict):
+        """
+        function for calculating the confidence interval with a 95 % confidence level
+        input z: flattened Franke function array
+        input z_predict: flattened predicted Franke function array
+        """
 
-    def Benchmark(self, m):
+        # array dimensions
+        n = len(z)
+        l = len(self.beta)
+
+        # calculate sigma squared (unbiased) and standard deviation
+        sigma_squared = sum((z - z_predict)**2)/(n - l - 1)
+        sigma         = np.sqrt(sigma_squared)
+
+        # variance of beta
+        XTX_inv       = np.linalg.inv(np.dot(self.X.T,self.X))
+        self.var_beta = sigma_squared*XTX_inv
+
+        # Z-score for a 95% confidence interval is 1.96
+        Z_score = 1.96
+
+        # create array for storing the confidence interval for beta
+        self.con_int = np.zeros((len(self.beta),2))
+
+        print('       Beta          Lower percentile   Upper percentile')
+        for i in range(len(self.beta)):
+            self.con_int[i,0] = self.beta[i] - Z_score*np.sqrt(XTX_inv[i,i])*sigma
+            self.con_int[i,1] = self.beta[i] + Z_score*np.sqrt(XTX_inv[i,i])*sigma
+
+            print(self.beta[i], self.con_int[i, 0], self.con_int[i,1])
+
+
+    def MeanSquaredError(self, z, z_predict):
+        """
+        function for calculating the mean squared error (MSE)
+        input z: flattened Franke function array
+        input z_predict: flattened predicted Franke function array
+        """
+
+        self.mse = sum((z - z_predict)**2)/len(z)
+
+    def R2Score(self, z, z_predict):
+        """
+        function for calculating the R2 score
+        input z: flattened Franke function array
+        input z_predict: flattened predicted Franke function array
+        """
+
+        # calculate mean value of z_predict
+        mean_z_predict = sum(z_predict)/len(z)
+
+        self.r2score = 1. - sum((z - z_predict)**2)/sum((z - mean_z_predict)**2)
+
+    def RavelArrays(self):
+        """
+        general function for flattening the x-, y-, z- and z_predict-arrays
+        """
+
+        # ravel x, y, z and z_predict
+        self.xr         = np.ravel(self.x)
+        self.yr         = np.ravel(self.y)
+        self.zr         = np.ravel(self.z)
+        self.zr_predict = np.ravel(self.z_predict)
+
+
+    def Benchmark(self, x, y, z, z_predict, m):
         """
         function for creating benchmarks
+        inputs x, y, z and z_predict: flattened x-, y-, z- and z_predict-arrays
         input m: polynomial degree
         """
 
-        self.OrdinaryLeastSquares()
+        # self.OrdinaryLeastSquares()
 
-        # set up x- and y-arrays to a dimension that fit_transform accepts
-        x = np.ravel(self.x)
-        y = np.ravel(self.y)
+        ### benchmarking beta values ###
 
+        # expand to an additional dimension
         x = np.expand_dims(x, axis=0)
         y = np.expand_dims(y, axis=0)
 
+        # concatenate in order to create an input array acceptable in fit_transform
         input_arr = np.concatenate((x.T, y.T), axis=1)
 
-        poly = PolynomialFeatures(degree=m)
-        Xp   = poly.fit_transform(input_arr)
+        poly   = PolynomialFeatures(degree=m)
+        Xp     = poly.fit_transform(input_arr)
+        linreg = LinearRegression(fit_intercept=False)  # set fit_intercept to False to get all beta values
+        linreg.fit(Xp, z)
 
-        self.z = np.ravel(self.z)
-        linreg = LinearRegression(fit_intercept=False)
-        linreg.fit(Xp, self.z)
+        self.beta_bench = linreg.coef_
 
-        self.beta2 = linreg.coef_
+        ### benchmark mean squared error (MSE) ###
+        self.MeanSquaredError(z, z_predict)
+        self.mse_bench = mean_squared_error(z, z_predict)
 
-        # write to file
-        file_handling.BenchmarksToFile(self.beta, self.beta2)
+        ### benchmark R2 score ###
+        self.R2Score(z, z_predict)
+        self.r2score_bench = r2_score(z, z_predict)
 
+        ### write to file ###
+        file_handling.BenchmarksToFile(self.beta,
+                                       self.beta_bench,
+                                       self.mse,
+                                       self.mse_bench,
+                                       self.r2score,
+                                       self.r2score_bench)
 
     def Plot3D(self):
         """
@@ -194,6 +266,9 @@ class RegressionAnalysis():
 
 if __name__ == '__main__':
     run = RegressionAnalysis()
-    # run.OrdinaryLeastSquares()
+    run.OrdinaryLeastSquares()
+    run.RavelArrays()
+    run.ConfidenceInterval(run.zr, run.zr_predict)
+    run.MeanSquaredError(run.zr, run.zr_predict)
+    run.Benchmark(run.xr, run.yr, run.zr, run.zr_predict, m=2)
     # run.PlotMultiple3D()
-    run.Benchmark(m=2)

@@ -1,4 +1,5 @@
 import define_colormap
+import file_handling
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -6,6 +7,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from random import random, seed
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
 
 
 class RegressionAnalysis():
@@ -28,6 +30,8 @@ class RegressionAnalysis():
     def FrankeFunction(self, x, y, noise=False):
         """
         function to calculate the Franke function
+        input x, y: data points in x- and y-direction
+        input noise: set to True to add noise to the function
         """
 
         term1 = 0.75*np.exp(-((9*x-2)**2)/4. - ((9*y-2)**2)/4.)
@@ -46,7 +50,9 @@ class RegressionAnalysis():
         """
         function for creating the design  matrix
         the matrix has dimension (nxl) where n is the number of data points
-        and l is the number of terms in the polynomial with degree m
+        and l is the number of terms in the polynomial with degree m (maybe write in report instead)
+        input x, y: data points in x- and y-direction
+        input m: polynomial degree
         """
 
         # reshape x and y if they are multidimensional
@@ -71,6 +77,8 @@ class RegressionAnalysis():
     def ComputeBetaValues(self, X, z):
         """
         compute beta values using matrix inversion
+        input X: design matrix
+        input z: Franke function
         """
 
         beta = np.dot(np.linalg.inv(np.dot(X.T,X)),np.dot(X.T,z))
@@ -83,23 +91,51 @@ class RegressionAnalysis():
         """
 
         # compute the Franke function
-        z = self.FrankeFunction(self.x, self.y)
+        self.z = self.FrankeFunction(self.x, self.y)
 
         # compute the design matrix based on the polynomial degree m
-        X = self.DesignMatrix(self.x, self.y, m=5)
+        self.X = self.DesignMatrix(self.x, self.y, m=2)
 
         # reshape matrix into vector in order to compute the beta values
-        z_vec = np.ravel(z)
+        z_vec = np.ravel(self.z)
 
         # calculate beta values
-        beta = self.ComputeBetaValues(X, z_vec)
-
-        print(X.shape, beta.shape)
+        self.beta = self.ComputeBetaValues(self.X, z_vec)
 
         # compute predicted Franke function
-        z_predict = np.dot(X,beta)
+        self.z_predict = np.dot(self.X,self.beta)
 
-        return z_predict
+        # return z_predict
+
+    def Benchmark(self, m):
+        """
+        function for creating benchmarks
+        input m: polynomial degree
+        """
+
+        self.OrdinaryLeastSquares()
+
+        # set up x- and y-arrays to a dimension that fit_transform accepts
+        x = np.ravel(self.x)
+        y = np.ravel(self.y)
+
+        x = np.expand_dims(x, axis=0)
+        y = np.expand_dims(y, axis=0)
+
+        input_arr = np.concatenate((x.T, y.T), axis=1)
+
+        poly = PolynomialFeatures(degree=m)
+        Xp   = poly.fit_transform(input_arr)
+
+        self.z = np.ravel(self.z)
+        linreg = LinearRegression(fit_intercept=False)
+        linreg.fit(Xp, self.z)
+
+        self.beta2 = linreg.coef_
+
+        # write to file
+        file_handling.BenchmarksToFile(self.beta, self.beta2)
+
 
     def Plot3D(self):
         """
@@ -134,45 +170,30 @@ class RegressionAnalysis():
         create multiple 3D subplot of the Franke function
         """
 
-        # calculate the Franke function
-        z = self.FrankeFunction(self.x, self.y)
-
-        print(z.shape)
-
         # calculate predicted Franke function
-        z_predict = self.OrdinaryLeastSquares()
-        np.reshape(z_predict, (100,100))
-
-        print(z_predict)
-        print(z_predict.shape)
-
+        self.OrdinaryLeastSquares()
+        self.z_predict = np.reshape(self.z_predict, (100,100))
 
         # plot figure
-        fig = plt.figure()
+        fig = plt.figure(figsize=(15,6))
         ax1  = fig.add_subplot(1, 2, 1, projection='3d')
 
         # define costum colormap
         cmap = define_colormap.DefineColormap('arctic')
 
         # plot surface
-        surf1 = ax1.plot_surface(self.x, self.y, z, cmap=cmap, linewidth=0, antialiased=False)
-        # ax1.view_init(elev=15)
+        surf1 = ax1.plot_surface(self.x, self.y, self.z, cmap=cmap, linewidth=0, antialiased=False)
 
         ax2  = fig.add_subplot(1, 2, 2, projection='3d')
-        surf2 = ax2.plot_surface(self.x, self.y, z_predict, cmap=cmap, linewidth=0, antialiased=False)
-        # ax2.view_init(elev=15)
-
-        # Customize the z axis.
-        # ax.set_zlim(-0.10, 1.40)
-        # ax.zaxis.set_major_locator(LinearLocator(10))
-        # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+        surf2 = ax2.plot_surface(self.x, self.y, self.z_predict, cmap=cmap, linewidth=0, antialiased=False)
 
         # add colorbar
         # fig.colorbar(surf2)
 
-        # plt.show()
+        plt.show()
 
 if __name__ == '__main__':
     run = RegressionAnalysis()
     # run.OrdinaryLeastSquares()
-    run.PlotMultiple3D()
+    # run.PlotMultiple3D()
+    run.Benchmark(m=2)

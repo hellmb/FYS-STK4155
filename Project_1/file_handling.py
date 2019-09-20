@@ -34,6 +34,4 @@ def BenchmarksToFile(beta1, beta2, mse1, mse2, r2s1, r2s2):
     with open('Benchmarks/benchmarks_a.txt', 'a') as f:
         f.write('\nR2 score from code and scikit learn:\n')
         f.write('%s  %s\n' % (r2s1, r2s2))
-
-
-    f.close()
+        f.close()

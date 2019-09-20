@@ -1,29 +1,42 @@
-import define_colormap
 import file_handling
+import plotting_function
+import matplotlib
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from random import random, seed
+from sklearn.utils import shuffle
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split, KFold
+
+# set general plotting font consistent with LaTeX
+matplotlib.rcParams['mathtext.fontset'] = 'cm'
+matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 class RegressionAnalysis():
 
-    def __init__(self):
+    def __init__(self, m=2, noise=False):
         """
         initialise the instance of the class
         """
 
+        # array dimension
+        self.dim = 100
+
         # random values (sorted)
-        self.x = np.sort(np.random.uniform(0, 1, 100))
-        self.y = np.sort(np.random.uniform(0, 1, 100))
+        self.x = np.sort(np.random.uniform(0, 1, self.dim))
+        self.y = np.sort(np.random.uniform(0, 1, self.dim))
 
         # create meshgrid
         self.x, self.y = np.meshgrid(self.x, self.y)
 
-    def FrankeFunction(self, x, y, noise=False):
+        # polynomial degree
+        self.m = m
+
+        # noise
+        self.noise = noise
+
+    def FrankeFunction(self, x, y):
         """
         function to calculate the Franke function
         input x, y: data points in x- and y-direction
@@ -37,21 +50,21 @@ class RegressionAnalysis():
 
         z = term1 + term2 + term3 + term4
 
-        if noise:
-            z += 0.1*np.random.randn(100,1)
+        if self.noise:
+            z += 0.1*np.random.randn(self.dim,1)
 
         return z
 
-    def DesignMatrix(self, x, y, m):
+    def DesignMatrix(self, x, y):
         """
-        function for creating the design  matrix
+        function for creating the design matrix
         the matrix has dimension (nxl) where n is the number of data points
         and l is the number of terms in the polynomial with degree m (maybe write in report instead)
         input x, y: data points in x- and y-direction
         input m: polynomial degree
         """
 
-        print('You are fitting a polynomial of degree %d' % m)
+        print('You are fitting a polynomial of degree %d' % self.m)
 
         # reshape x and y if they are multidimensional
         if len(x.shape) > 1:
@@ -59,19 +72,19 @@ class RegressionAnalysis():
             y = np.ravel(y)
 
         n = len(x)
-        l = int((m+1)*(m+2)/2)        # number of beta values
-        print('Dimension of design matrix: (%d, %d)' % (n, l))
+        l = int((self.m+1)*(self.m+2)/2)        # number of beta values
+        # print('Dimension of design matrix: (%d, %d)' % (n, l))
 
         # set up the design matrix
         X = np.ones((n, l))
-        for i in range(1, m+1):
+        for i in range(1, self.m+1):
             index = int(i*(i+1)/2)
             for j in range(i+1):
                 X[:,index+j] = x**(i-j) * y**j
 
         return X
 
-    def ComputeBetaValues(self, X, z):
+    def BetaValues(self, X, z):
         """
         compute beta values using matrix inversion
         input X: design matrix
@@ -91,18 +104,18 @@ class RegressionAnalysis():
         self.z = self.FrankeFunction(self.x, self.y)
 
         # compute the design matrix based on the polynomial degree m
-        self.X = self.DesignMatrix(self.x, self.y, m=2)
+        self.X = self.DesignMatrix(self.x, self.y)
 
         # reshape matrix into vector in order to compute the beta values
         z_vec = np.ravel(self.z)
 
         # calculate beta values
-        self.beta = self.ComputeBetaValues(self.X, z_vec)
+        self.beta = self.BetaValues(self.X, z_vec)
 
         # compute predicted Franke function
         self.z_predict = np.dot(self.X,self.beta)
 
-    def ConfidenceInterval(self, z, z_predict):
+    def ConfidenceInterval(self, zr, zr_predict):
         """
         function for calculating the confidence interval with a 95 % confidence level
         input z: flattened Franke function array
@@ -110,11 +123,11 @@ class RegressionAnalysis():
         """
 
         # array dimensions
-        n = len(z)
+        n = len(zr)
         l = len(self.beta)
 
         # calculate sigma squared (unbiased) and standard deviation
-        sigma_squared = sum((z - z_predict)**2)/(n - l - 1)
+        sigma_squared = sum((zr - zr_predict)**2)/(n - l - 1)
         sigma         = np.sqrt(sigma_squared)
 
         # variance of beta
@@ -125,26 +138,30 @@ class RegressionAnalysis():
         Z_score = 1.96
 
         # create array for storing the confidence interval for beta
-        self.con_int = np.zeros((len(self.beta),2))
+        self.con_int = np.zeros((l,2))
 
         print('       Beta          Lower percentile   Upper percentile')
-        for i in range(len(self.beta)):
+        for i in range(l):
             self.con_int[i,0] = self.beta[i] - Z_score*np.sqrt(XTX_inv[i,i])*sigma
             self.con_int[i,1] = self.beta[i] + Z_score*np.sqrt(XTX_inv[i,i])*sigma
 
             print(self.beta[i], self.con_int[i, 0], self.con_int[i,1])
 
 
-    def MeanSquaredError(self, z, z_predict):
+    def MeanSquaredError(self, zr, zr_predict):
         """
         function for calculating the mean squared error (MSE)
         input z: flattened Franke function array
         input z_predict: flattened predicted Franke function array
         """
 
-        self.mse = sum((z - z_predict)**2)/len(z)
+        mse = sum((zr - zr_predict)**2)/len(zr)
 
-    def R2Score(self, z, z_predict):
+        # print('MSE: %.5f' % self.mse)
+
+        return mse
+
+    def R2Score(self, zr, zr_predict):
         """
         function for calculating the R2 score
         input z: flattened Franke function array
@@ -152,9 +169,90 @@ class RegressionAnalysis():
         """
 
         # calculate mean value of z_predict
-        mean_z_predict = sum(z_predict)/len(z)
+        mean_z_predict = sum(zr_predict)/len(zr)
 
-        self.r2score = 1. - sum((z - z_predict)**2)/sum((z - mean_z_predict)**2)
+        r2score = 1. - sum((zr - zr_predict)**2)/sum((zr - mean_z_predict)**2)
+
+        # print('r2score: %.5f' % self.r2score)
+
+        return r2score
+
+    def TestTrainSplit(self, X, z, split=0.8):
+        """
+        function for splitting data into training data and test data
+        input X: design matrix
+        input z: Franke function
+        """
+
+
+
+
+
+    def KFoldCrossValidation(self, X, z, folds):
+        """
+        k-fold cross validation
+        """
+
+        # shuffle X and z equally (index-wise) -- must be a better way of doing this
+        z = np.ravel(z)
+        randomise = np.arange(len(z))
+        np.random.shuffle(randomise)
+        X = X[randomise,:]
+        z = z[randomise]
+        #z = np.reshape(z, (self.dim,self.dim))
+
+        # split X and z into k folds
+        X_k = np.array_split(X, folds)
+        z_k = np.array_split(z, folds)
+
+
+        # empty arrays for training and test MSE
+        mse_train = np.zeros(folds)
+        mse_test  = np.zeros(folds)
+
+        # perform MSE on the different training and test data
+        for k in range(folds):
+
+            # set up training data for X and z
+            X_train = X_k
+            X_train = np.delete(X_train, k, 0)      # delete fold with index k
+            X_train = np.concatenate(X_train)       # join sequence of arrays
+
+            z_train = z_k
+            z_train = np.delete(z_train, k, 0)
+            z_train = np.concatenate(z_train)
+
+            print(X_train.shape, z_train.shape)
+            # z_train = np.ravel(z_train)             # use np.ravel for correct dimensions
+
+            # set test data equal to the deleted fold in training data
+            X_test = X_k[k]
+            z_test = z_k[k]
+            #z_test = np.ravel(z_test)
+
+            # perform OLS
+            beta_train = self.BetaValues(X_train, z_train)
+
+            # calculate z_predict for training and test data
+            zpred_train = np.dot(X_train,beta_train)
+            zpred_test = np.dot(X_test, beta_train)
+
+            # append MSE to lists
+            mse_train[k] = self.MeanSquaredError(z_train, zpred_train)
+            mse_test[k]  = self.MeanSquaredError(z_test, zpred_test)
+
+
+        print(mse_train)
+        print(mse_test)
+        # print(mse_test-mse_train)
+
+        zpred_train_mesh = np.reshape(zpred_train, ())
+        zpred_test_mesh  = np.reshape(zpred_test, (self.dim,self.dim))
+
+        # plotting_function.PlotMultiple3D(self.x, self.y, zpred_train_mesh, zpred_test_mesh, zpred_train, zpred_test, self.m, self.dim)
+
+        # perform statistical analysis like mean, average, standard deviation etc.
+
 
     def RavelArrays(self):
         """
@@ -175,11 +273,9 @@ class RegressionAnalysis():
         input m: polynomial degree
         """
 
-        # self.OrdinaryLeastSquares()
-
         ### benchmarking beta values ###
 
-        # expand to an additional dimension
+        # expand x and y to have an additional dimension
         x = np.expand_dims(x, axis=0)
         y = np.expand_dims(y, axis=0)
 
@@ -194,12 +290,20 @@ class RegressionAnalysis():
         self.beta_bench = linreg.coef_
 
         ### benchmark mean squared error (MSE) ###
-        self.MeanSquaredError(z, z_predict)
+        self.mse       = self.MeanSquaredError(z, z_predict)
         self.mse_bench = mean_squared_error(z, z_predict)
 
         ### benchmark R2 score ###
-        self.R2Score(z, z_predict)
+        self.r2score       = self.R2Score(z, z_predict)
         self.r2score_bench = r2_score(z, z_predict)
+
+        ### benchmark k_fold cross validation ###
+        # validate k-fold cv --> put in benchmarks
+        # k_fold = KFold(n_splits=folds, shuffle=True)
+        # for train_ind, test_ind in k_fold.split(X):
+        #     print(train_ind, test_ind)
+        #     print('sklearn:')
+        #     print(len(X[train_ind]))
 
         ### write to file ###
         file_handling.BenchmarksToFile(self.beta,
@@ -209,66 +313,37 @@ class RegressionAnalysis():
                                        self.r2score,
                                        self.r2score_bench)
 
-    def Plot3D(self):
+
+
+    def TaskA(self):
         """
-        create 3D plot of the Franke function
-        """
-
-        # calculate the Franke function
-        z = self.FrankeFunction(self.x, self.y)
-
-        # plot figure
-        fig = plt.figure()
-        ax  = fig.gca(projection='3d')
-
-        # define costum colormap
-        cmap = define_colormap.DefineColormap('arctic')
-
-        # plot surface
-        surf = ax.plot_surface(self.x, self.y, z, cmap=cmap, linewidth=0, antialiased=False)
-
-        # Customize the z axis.
-        # ax.set_zlim(-0.10, 1.40)
-        # ax.zaxis.set_major_locator(LinearLocator(10))
-        # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-
-        # add colorbar
-        fig.colorbar(surf)
-
-        plt.show()
-
-    def PlotMultiple3D(self):
-        """
-        create multiple 3D subplot of the Franke function
+        run project task a
         """
 
-        # calculate predicted Franke function
         self.OrdinaryLeastSquares()
-        self.z_predict = np.reshape(self.z_predict, (100,100))
+        self.RavelArrays()
+        self.ConfidenceInterval(self.zr, self.zr_predict)
 
-        # plot figure
-        fig = plt.figure(figsize=(15,6))
-        ax1  = fig.add_subplot(1, 2, 1, projection='3d')
+        mse     = self.MeanSquaredError(self.zr, self.zr_predict)
+        r2score = self.R2Score(self.zr, self.zr_predict)
 
-        # define costum colormap
-        cmap = define_colormap.DefineColormap('arctic')
+        # plotting_function.Plot3D(self.x, self.y, self.z_predict, self.m, self.dim)
+        # plotting_function.ErrorBars(self.beta, self.con_int, self.m)
+        # plotting_function.PlotMultiple3D(self.x, self.y, self.z, self.zr_predict, self.zr, self.zr_predict, self.m, self.dim)
 
-        # plot surface
-        surf1 = ax1.plot_surface(self.x, self.y, self.z, cmap=cmap, linewidth=0, antialiased=False)
+    def TaskB(self):
+        """
+        run project task b
+        """
+        self.OrdinaryLeastSquares()
+        self.KFoldCrossValidation(self.X, self.z, 5)
 
-        ax2  = fig.add_subplot(1, 2, 2, projection='3d')
-        surf2 = ax2.plot_surface(self.x, self.y, self.z_predict, cmap=cmap, linewidth=0, antialiased=False)
 
-        # add colorbar
-        # fig.colorbar(surf2)
-
-        plt.show()
 
 if __name__ == '__main__':
-    run = RegressionAnalysis()
-    run.OrdinaryLeastSquares()
-    run.RavelArrays()
-    run.ConfidenceInterval(run.zr, run.zr_predict)
-    run.MeanSquaredError(run.zr, run.zr_predict)
-    run.Benchmark(run.xr, run.yr, run.zr, run.zr_predict, m=2)
-    # run.PlotMultiple3D()
+    # for m in range(1,6):
+    #     run = RegressionAnalysis(m=m, noise=False)
+    #     run.TaskA()
+    # plotting_function.Plot3D(run.x, run.y, run.z_predict, run.m, run.dim)
+    run = RegressionAnalysis(m=5, noise=False)
+    run.TaskB()

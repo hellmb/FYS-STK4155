@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 
-def Plot3D(x, y, z, m, dim):
+def Plot3D(x, y, z, m, dim, savefig=False):
     """
     create 3D plot of the Franke function
     input z: function to be plotted
@@ -36,21 +36,16 @@ def Plot3D(x, y, z, m, dim):
     # add colorbar
     fig.colorbar(surf, shrink=0.6)
 
-    # plt.show()
+    plt.show()
 
-    fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
+    if savefig:
+        fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
 
 
-def PlotMultiple3D(x, y, z, z_predict, zr, zr_predict, m, dim):
+def PlotMultiple3D(x, y, z, z_predict, m, dim, savefig=False):
     """
     create multiple 3D subplot of the Franke function
-    input zr: flattened true values of z
-    input zr_predict: flattened predicted values of z
     """
-
-    # calculate predicted Franke function
-    # self.OrdinaryLeastSquares()
-    z_predict = np.reshape(z_predict, (dim,dim))
 
     # plot figure
     fig = plt.figure(figsize=(15,6))
@@ -76,6 +71,9 @@ def PlotMultiple3D(x, y, z, z_predict, zr, zr_predict, m, dim):
     ax2.set_zlabel(r'$z$', fontsize=15)
 
     ### add colorbar ###
+    # ravel z and z_predict
+    zr         = np.ravel(z)
+    zr_predict = np.ravel(z_predict)
     # determine maximum and minimum values of the colorbar
     determine_colormap = np.array([max(zr), max(zr_predict), min(zr), min(zr_predict)])
     min_val = determine_colormap.min()
@@ -94,12 +92,13 @@ def PlotMultiple3D(x, y, z, z_predict, zr, zr_predict, m, dim):
     map.set_array([])
     cbar = plt.colorbar(map, orientation='horizontal', cax=ax_cbar, shrink=0.7, fraction=.05, ticklocation='top')
 
-    # plt.show()
+    plt.show()
 
-    name_string = 'dual_surface_p' + str(m)
-    fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
+    if savefig:
+        name_string = 'dual_surface_p' + str(m)
+        fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
 
-def ErrorBars(beta, con_int, m):
+def ErrorBars(beta, con_int, m, savefig=False):
     """
     function for creating error bar plot for confidence intervals
     """
@@ -118,7 +117,114 @@ def ErrorBars(beta, con_int, m):
     plt.title(r'95% confidence intervals of $\beta$', fontsize=20)
     plt.xlabel(r'$\beta$', fontsize=15)
     plt.ylabel(r'Confidence interval', fontsize=15)
-    # plt.show()
+    plt.show()
 
-    name_string = 'confidence_interval_p' + str(m)
-    fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
+    if savefig:
+        name_string = 'confidence_interval_p' + str(m)
+        fig.savefig('Figures/'+name_string+'.png', format='png', dpi=500, transparent=False)
+
+def PlotMSE(m_array, mse, list_of_lambdas, max_degree, reg_name, savefig=False):
+    """
+    plot the mean squared error against model complexity
+    """
+
+    fig = plt.figure(figsize=(10,6))
+    for l in range(len(list_of_lambdas)):
+        plt.plot(m_array, mse[:,l], label=r'$\lambda$ = %.3f' % list_of_lambdas[l])
+
+    plt.title('Polynomial degree vs. mean squared error for '+reg_name+' regression', fontsize=20)
+    plt.xlabel('Polynomial degree', fontsize=15)
+    plt.ylabel('Mean squared error', fontsize=15)
+    plt.xticks(np.arange(1,max_degree+1, step=1))
+    plt.legend(fontsize=12)
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/mse_degree_'+reg_name+'.png', format='png', dpi=500)
+
+def PlotR2Score(m_array, r2score, list_of_lambdas, max_degree, reg_name, savefig=False):
+    """
+    plot the mean squared error against model complexity
+    """
+
+    fig = plt.figure(figsize=(10,6))
+    for l in range(len(list_of_lambdas)):
+        plt.plot(m_array, r2score[:,l], label=r'$\lambda$ = %.3f' % list_of_lambdas[l])
+
+    plt.title(r'Polynomial degree vs. $R^2$ score for '+reg_name+' regression', fontsize=20)
+    plt.xlabel('Polynomial degree', fontsize=15)
+    plt.ylabel(r'$R^2$ score', fontsize=15)
+    plt.xticks(np.arange(1,max_degree+1, step=1))
+    plt.legend(fontsize=12)
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/r2score_degree_'+reg_name+'.png', format='png', dpi=500)
+
+def PlotMSETestTrain(m_array, mse_train, mse_test, max_degree, savefig=False):
+    """
+    plot the mean squared error against model complexity
+    """
+
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(m_array, mse_train, label='Train')
+    plt.plot(m_array, mse_test, label='Test')
+    plt.title('Model complexity vs. predicted error', fontsize=20)
+    plt.xlabel('Polynomial degree', fontsize=15)
+    plt.ylabel('Mean squared error', fontsize=15)
+    plt.xticks(np.arange(1,max_degree+1, step=1))
+    plt.legend(fontsize=12)
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/error_model_complexity.png', format='png', dpi=500)
+
+def PlotMultipleMSETestTrain(m_array, mse_train, mse_test, list_of_lambdas, max_degree, reg_name, savefig=False):
+    """
+    plot the mean squared error against model complexity for different values of lambda
+    """
+
+    fig = plt.figure(figsize=(10,6))
+    color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
+    color_test  = ['#EC407A','#7986CB','#42A5F5','#80CBC4','#9CCC65','#FFD54F','#FFAB91']
+
+    for l in range(len(list_of_lambdas)):
+        # for m in range(max_degree):
+        # plot model complexity vs. predicted error
+        plt.plot(m_array, mse_train[:,l], color=color_train[l], label=r'Train, $\lambda$ = %.3f' % list_of_lambdas[l])
+        plt.plot(m_array, mse_test[:,l], color=color_test[l], label=r'Test, $\lambda$ = %.3f' % list_of_lambdas[l])
+        plt.legend(fontsize=12)
+
+    plt.title('Model complexity vs. predicted error for '+reg_name+' regression', fontsize=20)
+    plt.xlabel('Polynomial degree', fontsize=15)
+    plt.ylabel('Mean squared error', fontsize=15)
+    plt.xticks(np.arange(1,max_degree+1, step=1))
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/error_model_complexity_'+reg_name+'.png', format='png', dpi=500)
+
+def PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, reg_name, savefig=False):
+    """
+    plot the mean squared error against model complexity for different values of lambda
+    """
+
+    fig = plt.figure(figsize=(10,6))
+    color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
+    color_test  = ['#EC407A','#7986CB','#42A5F5','#80CBC4','#9CCC65','#FFD54F','#FFAB91']
+
+    for l in range(len(list_of_lambdas)):
+        # for m in range(max_degree):
+        # plot model complexity vs. predicted error
+        plt.plot(m_array, r2s_train[:,l], color=color_train[l], label=r'Train, $\lambda$ = %.3f' % list_of_lambdas[l])
+        plt.plot(m_array, r2s_test[:,l], color=color_test[l], label=r'Test, $\lambda$ = %.3f' % list_of_lambdas[l])
+        plt.legend(fontsize=12)
+
+    plt.title(r'Model complexity vs. $R^2$ score for '+reg_name+' regression', fontsize=20)
+    plt.xlabel('Polynomial degree', fontsize=15)
+    plt.ylabel(r'$R^2$ score', fontsize=15)
+    plt.xticks(np.arange(1,max_degree+1, step=1))
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/r2score_model_complexity_'+reg_name+'.png', format='png', dpi=500)

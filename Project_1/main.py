@@ -299,6 +299,10 @@ class RegressionAnalysis():
             r2s_train[k] = self.R2Score(z_tmp, zpred_train)
             r2s_test[k]  = self.R2Score(z_test, zpred_test_store[:,k])
 
+            # store the best beta array
+            if (k > 0) and (mse_train[k] < mse_train[k-1]):
+                self.best_beta = beta_train
+
         # calculate bias an variance for the test data
         bias_test, var_test = self.BiasVarianceTradeoff(z_test, zpred_test_store)
 
@@ -315,6 +319,7 @@ class RegressionAnalysis():
         print('Bias^2 test:    ', bias_test)
         print('Variance test:  ', var_test)
         print(f'{self.avg_mse_test} >= {bias_test+var_test}')
+
 
     def BiasVarianceTradeoff(self, z_test, zpred_test):
         """
@@ -376,7 +381,7 @@ class RegressionAnalysis():
                                        r2score,
                                        r2score_bench)
 
-    def TaskA(self, plot=False):
+    def TaskA(self, plot=True):
         """
         run project task a
         """
@@ -401,9 +406,9 @@ class RegressionAnalysis():
         print('r2score: ', r2score)
 
         if plot:
-            plotting_function.Plot3D(self.x, self.y, self.z_predict, self.m, self.dim, savefig=False)
-            plotting_function.ErrorBars(self.beta, self.con_int, self.m, savefig=False)
-            plotting_function.PlotMultiple3D(self.x, self.y, self.z, self.z_predict, self.m, self.dim, savefig=False)
+            # plotting_function.Plot3D(self.x, self.y, self.z_predict, self.m, self.dim, function='franke', savefig=False)
+            # plotting_function.ErrorBars(self.beta, self.con_int, self.m, savefig=False)
+            plotting_function.PlotDuo3D(self.x, self.y, self.z, self.z_predict, self.m, self.dim, lambda_val=0, function='franke', method='OLS', savefig=False)
 
     def TaskB(self):
         """
@@ -471,14 +476,27 @@ class RegressionAnalysis():
         # load terrain data
         terrain = imread('srtm_data_oslo.tif')
 
+        # plt.figure()
+        # plt.imshow(terrain, cmap='gray')
+        # plt.show()
+
         # reduce the size of the terrain to 300x300
-        reduced_terrain = terrain[1200:1200+self.dim, 1200:1200+self.dim]
-        self.z = reduced_terrain
+        # reduced_terrain = terrain[1200:1200+self.dim, 1200:1200+self.dim]
+        reduced_terrain = terrain[1000:1000+self.dim, 200:200+self.dim]
+
+        # set z equal to the normalised reduced_terrain array
+        self.z = (reduced_terrain-reduced_terrain.min())/(reduced_terrain.max() - reduced_terrain.min())
+
+        # plotting_function.Plot3D(self.x, self.y, self.z, self.m, self.dim, function='terrain', savefig=False)
 
         # calculate design matrix
         self.X = self.DesignMatrix(self.x, self.y)
 
         self.Bootstrap(self.X, self.z, n_boots=100)
+
+        # calculate z_predict with the best beta
+        self.z_predict = np.dot(self.X,self.best_beta)
+        self.z_predict = np.reshape(self.z_predict, (self.dim, self.dim))
 
 if __name__ == '__main__':
 
@@ -491,7 +509,7 @@ if __name__ == '__main__':
     run_task_G = True
 
     if run_task_A:
-        max_degree = 5
+        max_degree = 1
         for m in range(1,max_degree+1):
             run = RegressionAnalysis(dim=100, m=m, noise=False)
             run.TaskA(plot=True)
@@ -503,7 +521,6 @@ if __name__ == '__main__':
             run.TaskB()
 
     if run_task_C:
-
         max_degree = 5
         mse_train  = np.zeros(max_degree)
         mse_test   = np.zeros(max_degree)
@@ -574,15 +591,31 @@ if __name__ == '__main__':
         plotting_function.PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, 'Lasso', savefig=False)
 
     if run_task_G:
-        max_degree = 5
-        for m in range(5,max_degree+1):
-            run = RegressionAnalysis(dim=300, m=m, lambda_val=0.001, noise=False)
-            run.TaskG()
+        max_degree = 9
+        # for m in range(9,max_degree+1):
+        #     run = RegressionAnalysis(dim=100, m=m, lambda_val=0.01, noise=False, method='OLS')
+        #     run.TaskG()
+        #     run.z_ols = run.z_predict
+        #     plotting_function.PlotDuo3D(run.x, run.y, run.z, run.z_ols, run.m, run.dim, lambda_val=0, function='terrain', method='OLS', savefig=False)
 
-        # run = RegressionAnalysis(dim=300, m=5, lambda_val=1, noise=False, method='ridge')
-        # run.TaskG()
-        # run = RegressionAnalysis(dim=300, m=5, lambda_val=1, noise=False, method='lasso')
-        # run.TaskG()
+        lambda_val = 0.001
+
+        run1 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='OLS')
+        run1.TaskG()
+
+        run2 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='ridge')
+        run2.TaskG()
+        # plotting_function.PlotDuo3D(run2.x, run2.y, run2.z, run2.z_predict, run2.m, run2.dim, lambda_val=lambda_val, function='terrain', method='ridge', savefig=False)
+
+        run3 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='lasso')
+        run3.TaskG()
+
+        plotting_function.PlotCuatro3D(run1.x, run1.y, run1.z, run1.z_predict,
+                                       run2.x, run2.y, run2.z_predict,
+                                       run3.x, run3.y, run3.z_predict,
+                                       run1.m, run1.dim, lambda_val=lambda_val, function='terrain', savefig=False)
+
+
 
 
 

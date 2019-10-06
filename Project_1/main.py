@@ -1,16 +1,16 @@
-import file_handling
-import plotting_function
+import sys
 import matplotlib
 import numpy as np
-from random import random, seed
+from random import random
 from imageio import imread
-from sklearn.utils import shuffle
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split, KFold
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from sklearn.model_selection import train_test_split
+
+# import separate scripts
+import file_handling
+import plotting_function
 
 # set general plotting font consistent with LaTeX
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
@@ -18,7 +18,7 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 class RegressionAnalysis():
 
-    def __init__(self, dim = 100, m=2, lambda_val=0, noise=False, method='OLS'):
+    def __init__(self, dim=100, m=2, lambda_val=0, noise=False, method='OLS'):
         """
         initialise the instance of the class
         """
@@ -37,21 +37,18 @@ class RegressionAnalysis():
         self.m = m
 
         # value of lambda for Ridge and Lasso regression
-        # default is zero for OLS
         self.lambda_ = lambda_val
 
         # noise, boolean
         self.noise = noise
 
         # regression method, string
-        # default method is OLS
         self.method = method
 
     def FrankeFunction(self, x, y):
         """
         function to calculate the Franke function
-        input x, y: data points in x- and y-direction
-        input noise: set to True to add noise to the function
+        param x, y: data points in x- and y-direction
         """
 
         term1 = 0.75*np.exp(-((9*x-2)**2)/4. - ((9*y-2)**2)/4.)
@@ -66,16 +63,27 @@ class RegressionAnalysis():
 
         return z
 
+    def Terrain(self):
+        """
+        function that reads and processes the real terrain data
+        """
+
+        # load terrain data
+        terrain = imread('srtm_data_oslo.tif')
+
+        # reduce the size of the terrain to 200x200
+        reduced_terrain = terrain[1000:1000+self.dim, 200:200+self.dim]
+
+        # set z equal to the normalised reduced_terrain array
+        z = (reduced_terrain-reduced_terrain.min())/(reduced_terrain.max() - reduced_terrain.min())
+
+        return z
+
     def DesignMatrix(self, x, y):
         """
         function for creating the design matrix
-        the matrix has dimension (nxl) where n is the number of data points
-        and l is the number of terms in the polynomial with degree m (maybe write in report instead)
-        input x, y: data points in x- and y-direction
-        input m: polynomial degree
+        param x, y: data points in x- and y-direction
         """
-
-        print('Polynomial degree: ', self.m)
 
         # reshape x and y if they are multidimensional
         if len(x.shape) > 1:
@@ -84,7 +92,6 @@ class RegressionAnalysis():
 
         n = len(x)
         l = int((self.m+1)*(self.m+2)/2)        # number of beta values
-        # print('Dimension of design matrix: (%d, %d)' % (n, l))
 
         # set up the design matrix
         X = np.ones((n, l))
@@ -100,9 +107,8 @@ class RegressionAnalysis():
     def BetaValues(self, X, z):
         """
         compute beta values using matrix inversion
-        input X: design matrix
-        input z: input function
-        input lambda_val: complexity parameter
+        param X: design matrix
+        param z: input function
         """
 
         if len(z.shape) > 1:
@@ -119,11 +125,13 @@ class RegressionAnalysis():
 
         return beta
 
-    def ConfidenceInterval(self, z, z_predict):
+    def ConfidenceInterval(self, z, z_predict, X, beta):
         """
         function for calculating the confidence interval with a 95 % confidence level
-        input z: function array
-        input z_predict: predicted function array
+        param z: function array
+        param z_predict: predicted function array
+        param X: design matrix
+        param beta: beta array
         """
 
         # reshape z and z_predict if they are multidimensional
@@ -133,15 +141,15 @@ class RegressionAnalysis():
 
         # array dimensions
         n = len(z)
-        l = len(self.beta)
+        l = len(beta)
 
         # calculate sigma squared (unbiased) and standard deviation
         sigma_squared = sum((z - z_predict)**2)/(n - l - 1)
         sigma         = np.sqrt(sigma_squared)
 
         # variance of beta
-        XTX_inv       = np.linalg.inv(np.dot(self.X.T,self.X))
-        self.var_beta = sigma_squared*XTX_inv
+        XTX_inv       = np.linalg.inv(np.dot(X.T,X))
+        var_beta = sigma_squared*XTX_inv
 
         # Z-score for a 95% confidence interval is 1.96
         Z_score = 1.96
@@ -149,18 +157,16 @@ class RegressionAnalysis():
         # create array for storing the confidence interval for beta
         self.con_int = np.zeros((l,2))
 
-        print('       Beta          Lower percentile   Upper percentile')
         for i in range(l):
-            self.con_int[i,0] = self.beta[i] - Z_score*np.sqrt(XTX_inv[i,i])*sigma
-            self.con_int[i,1] = self.beta[i] + Z_score*np.sqrt(XTX_inv[i,i])*sigma
+            self.con_int[i,0] = beta[i] - Z_score*np.sqrt(XTX_inv[i,i])*sigma
+            self.con_int[i,1] = beta[i] + Z_score*np.sqrt(XTX_inv[i,i])*sigma
 
-            print(self.beta[i], self.con_int[i, 0], self.con_int[i,1])
 
     def MeanSquaredError(self, z, z_predict):
         """
         function for calculating the mean squared error (MSE)
-        input z: function array
-        input z_predict: predicted function array
+        param z: function array
+        param z_predict: predicted function array
         """
 
         len_z = len(np.ravel(z))
@@ -172,8 +178,8 @@ class RegressionAnalysis():
     def R2Score(self, z, z_predict):
         """
         function for calculating the R2 score
-        input z: function array
-        input z_predict: predicted function array
+        param z: function array
+        param z_predict: predicted function array
         """
 
         len_z = len(np.ravel(z))
@@ -185,75 +191,12 @@ class RegressionAnalysis():
 
         return r2score
 
-    def KFoldCrossValidation(self, X, z, folds, shuffle=True):
-        """
-        k-fold cross validation
-        """
-
-        # reshape z if they are multidimensional
-        if len(z.shape) > 1:
-            z = np.ravel(z)
-
-        if shuffle:
-            # shuffle X and z equally
-            randomise = np.arange(len(z))
-            np.random.shuffle(randomise)
-
-            # randomise X and z
-            X = X[randomise,:]
-            z = z[randomise]
-
-        # split X and z into k folds
-        X_k = np.array_split(X, folds)
-        z_k = np.array_split(z, folds)
-
-        # arrays for training and test MSE
-        mse_train = np.zeros(folds)
-        mse_test  = np.zeros(folds)
-
-        # perform MSE on the different training and test data
-        for k in range(folds):
-
-            # set up training data for X and z
-            X_train = X_k
-            X_train = np.delete(X_train, k, 0)      # delete fold with index k
-            X_train = np.concatenate(X_train)       # join sequence of arrays
-
-            z_train = z_k
-            z_train = np.delete(z_train, k, 0)
-            z_train = np.concatenate(z_train)
-
-            # set test data equal to the deleted fold in training data
-            X_test = X_k[k]
-            z_test = z_k[k]
-
-            # perform OLS
-            beta_train = self.BetaValues(X_train, z_train)
-
-            # calculate z_predict for training and test data
-            zpred_train = np.dot(X_train, beta_train)
-            zpred_test = np.dot(X_test, beta_train)
-
-            # append MSE to lists
-            mse_train[k] = self.MeanSquaredError(z_train, zpred_train)
-            mse_test[k]  = self.MeanSquaredError(z_test, zpred_test)
-
-        # perform statistical analysis like mean, average, standard deviation etc.
-        mean_train = np.mean(mse_train)
-        mean_test  = np.mean(mse_test)
-
-        std_train = np.std(mse_train)
-        std_test  = np.std(mse_test)
-
-        print('k-fold cross validation:')
-        print('Mean train:               ', mean_train)
-        print('Mean test:                ', mean_test)
-        print('Standard deviation train: ', std_train)
-        print('Standard deviation test:  ', std_test)
-
     def Bootstrap(self, X, z, n_boots):
         """
         bootstrap algorithm
+        param X: design matrix
+        param z: function array
+        param n_boots: number of bootstraps
         """
 
         # reshape z if they are multidimensional
@@ -300,32 +243,27 @@ class RegressionAnalysis():
             r2s_test[k]  = self.R2Score(z_test, zpred_test_store[:,k])
 
             # store the best beta array
-            if (k > 0) and (mse_train[k] < mse_train[k-1]):
+            if (k > 0) and (mse_test[k] < mse_test[k-1]):
+                self.best_beta = beta_train
+            else:
                 self.best_beta = beta_train
 
         # calculate bias an variance for the test data
-        bias_test, var_test = self.BiasVarianceTradeoff(z_test, zpred_test_store)
+        self.bias_test, self.var_test = self.BiasVarianceTradeoff(z_test, zpred_test_store)
 
+        # take the average of the training and test mse and r2 score
         self.avg_mse_train = np.mean(mse_train)
         self.avg_mse_test  = np.mean(mse_test)
 
         self.avg_r2s_train = np.mean(r2s_train)
         self.avg_r2s_test  = np.mean(r2s_test)
 
-        print('R2 score train: ', self.avg_mse_train)
-        print('R2 score test:  ', self.avg_r2s_test)
-        print('MSE train:      ', self.avg_mse_train)
-        print('MSE test:       ', self.avg_mse_test)
-        print('Bias^2 test:    ', bias_test)
-        print('Variance test:  ', var_test)
-        print(f'{self.avg_mse_test} >= {bias_test+var_test}')
-
 
     def BiasVarianceTradeoff(self, z_test, zpred_test):
         """
-        function for calculating the bias-variance tradeoff (using k-fold cross validation to train/test data)
-        input z_test: test data for the Franke function
-        input zpred_test: array of dimension (z_test.shape[0], number_of_bootstraps)
+        function for calculating the bias-variance tradeoff
+        param z_test: test data array
+        param zpred_test: test data array of dimension (z_test.shape[0], number_of_bootstraps)
         """
 
         bias_squared = np.mean((z_test[:,None] - np.mean(zpred_test, axis=1, keepdims=True))**2)
@@ -336,17 +274,21 @@ class RegressionAnalysis():
     def Benchmark(self):
         """
         function for creating benchmarks
-        inputs x, y, z and z_predict: x-, y-, z- and z_predict-arrays
-        input m: polynomial degree
         """
 
         ### benchmarking beta values ###
+
+        z = self.FrankeFunction(self.x, self.y)
+        X = self.DesignMatrix(self.x, self.y)
+        beta = self.BetaValues(X, z)
+        z_predict = np.dot(X,beta)
 
         # reshape x, y and z if they are multidimensional
         if len(self.x.shape) > 1:
             x = np.ravel(self.x)
             y = np.ravel(self.y)
-            z = np.ravel(self.z)
+            z = np.ravel(z)
+            z_predict = np.ravel(z_predict)
 
         # expand x and y to have an additional dimension
         x = np.expand_dims(x, axis=0)
@@ -357,266 +299,393 @@ class RegressionAnalysis():
 
         poly   = PolynomialFeatures(degree=self.m)
         Xp     = poly.fit_transform(input_arr)
-        linreg = LinearRegression(fit_intercept=False)  # set fit_intercept to False to get all beta values
+        linreg = LinearRegression(fit_intercept=False)
         linreg.fit(Xp, z)
 
         beta_bench = linreg.coef_
 
         ### benchmark mean squared error (MSE) ###
-        mse       = self.MeanSquaredError(self.z, self.z_predict)
-        mse_bench = mean_squared_error(self.z, self.z_predict)
+        mse       = self.MeanSquaredError(z, z_predict)
+        mse_bench = mean_squared_error(z, z_predict)
 
         ### benchmark R2 score ###
-        r2score       = self.R2Score(self.z, self.z_predict)
-        r2score_bench = r2_score(self.z.ravel(), self.z_predict.ravel())    # r2score from sklearn has different ways of calculating when array is multidimensional
-
-        # print(mse, mse_bench)
-        print(r2score, r2score_bench)
+        r2score       = self.R2Score(z, z_predict)
+        r2score_bench = r2_score(z.ravel(), z_predict.ravel())
 
         ### write to file ###
-        file_handling.BenchmarksToFile(self.beta,
+        file_handling.BenchmarksToFile(beta,
                                        beta_bench,
                                        mse,
                                        mse_bench,
                                        r2score,
                                        r2score_bench)
 
-    def TaskA(self, plot=True):
-        """
-        run project task a
-        """
-
-        # calculate the Franke function and design matrix
-        self.z = self.FrankeFunction(self.x, self.y)
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        # beta values for ordinary least squares method
-        self.beta = self.BetaValues(self.X, self.z)
-
-        # calculate z_predict
-        self.z_predict = np.dot(self.X,self.beta)
-        self.z_predict = np.reshape(self.z_predict, (self.dim, self.dim))
-
-        self.ConfidenceInterval(self.z, self.z_predict)
-
-        mse     = self.MeanSquaredError(self.z, self.z_predict)
-        r2score = self.R2Score(self.z, self.z_predict)
-
-        print('MSE:     ', mse)
-        print('r2score: ', r2score)
-
-        if plot:
-            # plotting_function.Plot3D(self.x, self.y, self.z_predict, self.m, self.dim, function='franke', savefig=False)
-            # plotting_function.ErrorBars(self.beta, self.con_int, self.m, savefig=False)
-            plotting_function.PlotDuo3D(self.x, self.y, self.z, self.z_predict, self.m, self.dim, lambda_val=0, function='franke', method='OLS', savefig=False)
-
-    def TaskB(self):
-        """
-        run project task b
-        """
-
-        # calculate the Franke function and design matrix
-        self.z = self.FrankeFunction(self.x, self.y)
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        # k-fold cross validation (OLS)
-        self.KFoldCrossValidation(self.X, self.z, folds=10, shuffle=True)
-
-    def TaskC(self):
-        """
-        run project task c
-        """
-
-        # calculate the Franke function and design matrix
-        self.z = self.FrankeFunction(self.x, self.y)
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        # bootstrap method (OLS)
-        self.Bootstrap(self.X, self.z, n_boots=100)
-
-        # self.KFoldCrossValidation(self.X, self.z, folds=10, shuffle=True)
-
-    def TaskD(self):
-        """
-        run project task d
-        """
-
-        # calculate the Franke function and design matrix
-        self.z = self.FrankeFunction(self.x, self.y)
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        # self.RidgeRegression(lambda_val)
-        # self.ConfidenceInterval(self.z, self.z_predict)
-        # self.mse = self.MeanSquaredError(self.z, self.z_predict)
-        # self.r2score = self.R2Score(self.z, self.z_predict)
-
-        self.Bootstrap(self.X, self.z, n_boots=100)
-
-    def TaskE(self):
-        """
-        run project task e
-        """
-
-        # calculate the Franke function and design matrix
-        self.z = self.FrankeFunction(self.x, self.y)
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        # self.LassoRegression(lambda_val)
-        # self.ConfidenceInterval(self.z, self.z_predict)
-        # self.mse = self.MeanSquaredError(self.z, self.z_predict)
-        # self.r2score = self.R2Score(self.z, self.z_predict
-
-        self.Bootstrap(self.X, self.z, n_boots=100)
-
-    def TaskG(self):
-        """
-        run project task g
-        """
-
-        # load terrain data
-        terrain = imread('srtm_data_oslo.tif')
-
-        # plt.figure()
-        # plt.imshow(terrain, cmap='gray')
-        # plt.show()
-
-        # reduce the size of the terrain to 300x300
-        # reduced_terrain = terrain[1200:1200+self.dim, 1200:1200+self.dim]
-        reduced_terrain = terrain[1000:1000+self.dim, 200:200+self.dim]
-
-        # set z equal to the normalised reduced_terrain array
-        self.z = (reduced_terrain-reduced_terrain.min())/(reduced_terrain.max() - reduced_terrain.min())
-
-        # plotting_function.Plot3D(self.x, self.y, self.z, self.m, self.dim, function='terrain', savefig=False)
-
-        # calculate design matrix
-        self.X = self.DesignMatrix(self.x, self.y)
-
-        self.Bootstrap(self.X, self.z, n_boots=100)
-
-        # calculate z_predict with the best beta
-        self.z_predict = np.dot(self.X,self.best_beta)
-        self.z_predict = np.reshape(self.z_predict, (self.dim, self.dim))
-
 if __name__ == '__main__':
 
-    # set tasks to run
-    run_task_A = False
-    run_task_B = False
-    run_task_C = False
-    run_task_D = False
-    run_task_E = False
-    run_task_G = True
+    write_benchmarks = False
+    if write_benchmarks:
+        # write benchmark values to file
+        bench = RegressionAnalysis(dim=100, m=5, noise=False)
+        bench.Benchmark()
 
-    if run_task_A:
-        max_degree = 1
-        for m in range(1,max_degree+1):
-            run = RegressionAnalysis(dim=100, m=m, noise=False)
-            run.TaskA(plot=True)
+    # check for input arguments
+    if len(sys.argv) == 1:
+        print('No arguments passed. Run "python main.py franke" or "python main.py terrain" in terminal.')
+        sys.exit()
 
-    if run_task_B:
-        max_degree = 5
-        for m in range(1,max_degree+1):
-            run = RegressionAnalysis(dim=100, m=m, noise=False)
-            run.TaskB()
+    arg = sys.argv[1]
 
-    if run_task_C:
-        max_degree = 5
-        mse_train  = np.zeros(max_degree)
-        mse_test   = np.zeros(max_degree)
-        m_array    = np.linspace(1,max_degree,max_degree)
+    # list of methods
+    methods = ['OLS', 'ridge', 'lasso']
 
-        for m in range(1,max_degree+1):
-            print(m)
-            run = RegressionAnalysis(dim=100, m=m, noise=False)
-            run.TaskC()
-            mse_train[m-1] = run.avg_mse_train
-            mse_test[m-1]  = run.avg_mse_test
+    # list of different lambda values to test
+    list_of_lambdas = [0.0001, 0.001, 0.1, 1, 10, 100, 10000]
 
-        # plot model complexity vs. predicted error
-        plotting_function.PlotMSETestTrain(m_array, mse_train, mse_test, max_degree, savefig=False)
+    # maximum polynomial degree
+    max_degree = 5
 
-    if run_task_D:
+    # number of bootstraps
+    n_boots = 1000
 
-        max_degree = 5
-        m_array    = np.linspace(1,max_degree,max_degree)
+    if arg == 'franke':
 
-        # create list of different lambda values
-        list_of_lambdas = [0.001, 0.1, 1, 10, 10000]
+        for method in methods:
+            if method == 'OLS':
 
-        mse_train  = np.zeros((max_degree, len(list_of_lambdas)))
-        mse_test   = np.zeros((max_degree, len(list_of_lambdas)))
-        r2s_train = np.zeros((max_degree, len(list_of_lambdas)))
-        r2s_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                # define empty arrays for different values
+                mse_train    = np.zeros(max_degree)
+                mse_ols_test = np.zeros(max_degree)
+                r2s_train    = np.zeros(max_degree)
+                r2s_ols_test = np.zeros(max_degree)
+                bias         = np.zeros(max_degree)
+                variance     = np.zeros(max_degree)
 
-        for l in range(len(list_of_lambdas)):
-            for m in range(1,max_degree+1):
-                run = RegressionAnalysis(dim=100, m=m, lambda_val=l, noise=False, method='ridge')
-                run.TaskD()
+                m_array    = np.linspace(1,max_degree,max_degree)
 
-                mse_train[m-1,l] = run.avg_mse_train
-                mse_test[m-1,l]  = run.avg_mse_test
-                r2s_train[m-1,l] = run.avg_r2s_train
-                r2s_test[m-1,l]  = run.avg_r2s_test
+                for m in range(1,max_degree+1):
+                    run = RegressionAnalysis(dim=100, m=m, noise=True)
 
-        # plot MSE and R2 score
-        plotting_function.PlotMultipleMSETestTrain(m_array, mse_train, mse_test, list_of_lambdas, max_degree, 'Ridge', savefig=False)
-        plotting_function.PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, 'Ridge', savefig=False)
+                    # calculate the Franke function
+                    z = run.FrankeFunction(run.x, run.y)
 
-    if run_task_E:
+                    # compute desing matrix
+                    X = run.DesignMatrix(run.x, run.y)
 
-        max_degree = 5
-        m_array    = np.linspace(1,max_degree,max_degree)
+                    # resample data
+                    run.Bootstrap(X, z, n_boots=n_boots)
 
-        # create list of different lambda values
-        list_of_lambdas = [0.001, 0.1, 1, 100, 1000, 10000]
+                    # calculate z_predict with the best beta
+                    z_predict = np.dot(X,run.best_beta)
+                    z_predict = np.reshape(z_predict, (run.dim, run.dim))
 
-        mse_train = np.zeros((max_degree, len(list_of_lambdas)))
-        mse_test  = np.zeros((max_degree, len(list_of_lambdas)))
-        r2s_train = np.zeros((max_degree, len(list_of_lambdas)))
-        r2s_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                    # calculate the confidence interval
+                    run.ConfidenceInterval(z, z_predict, X, run.best_beta)
 
-        for l in range(len(list_of_lambdas)):
-            for m in range(1,max_degree+1):
-                run = RegressionAnalysis(dim=100, m=m, lambda_val=l, noise=False, method='lasso')
-                run.TaskE()
+                    # fill empty arrays with MSE adn R2 score for training and test data
+                    mse_ols_test[m-1] = run.avg_mse_test
+                    mse_train[m-1]    = run.avg_mse_train
+                    r2s_train[m-1]    = run.avg_r2s_train
+                    r2s_ols_test[m-1] = run.avg_r2s_test
+                    bias[m-1]         = run.bias_test**(1./2)
+                    variance[m-1]     = run.var_test
 
-                mse_train[m-1,l] = run.avg_mse_train
-                mse_test[m-1,l]  = run.avg_mse_test
-                r2s_train[m-1,l] = run.avg_r2s_train
-                r2s_test[m-1,l]  = run.avg_r2s_test
+                    # calculate confidence interval for maximum polynomial degree
+                    if m == max_degree:
+                        ci_ols      = run.con_int
+                        ci_beta_ols = run.best_beta
 
-        # plot MSE and R2 score
-        plotting_function.PlotMultipleMSETestTrain(m_array, mse_train, mse_test, list_of_lambdas, max_degree, 'Lasso', savefig=False)
-        plotting_function.PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, 'Lasso', savefig=False)
+                # plot results
+                plotting_function.PlotMSETestTrain(m_array, mse_train, mse_ols_test, max_degree, function=arg, savefig=False)
+                plotting_function.PlotR2STestTrain(m_array, r2s_train, r2s_ols_test, max_degree, function=arg, savefig=False)
+                plotting_function.PlotBiasVariance(m_array, bias, variance, max_degree, function=arg, savefig=False)
 
-    if run_task_G:
-        max_degree = 9
-        # for m in range(9,max_degree+1):
-        #     run = RegressionAnalysis(dim=100, m=m, lambda_val=0.01, noise=False, method='OLS')
-        #     run.TaskG()
-        #     run.z_ols = run.z_predict
-        #     plotting_function.PlotDuo3D(run.x, run.y, run.z, run.z_ols, run.m, run.dim, lambda_val=0, function='terrain', method='OLS', savefig=False)
+            else:
 
-        lambda_val = 0.001
+                # define empty arrays for different values
+                mse_train = np.zeros((max_degree, len(list_of_lambdas)))
+                mse_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                r2s_train = np.zeros((max_degree, len(list_of_lambdas)))
+                r2s_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                bias      = np.zeros((max_degree, len(list_of_lambdas)))
+                variance  = np.zeros((max_degree, len(list_of_lambdas)))
+                m_array   = np.linspace(1,max_degree,max_degree)
 
-        run1 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='OLS')
-        run1.TaskG()
+                for l in range(len(list_of_lambdas)):
+                    for m in range(1,max_degree+1):
+                        run = RegressionAnalysis(dim=100, m=m, lambda_val=l, noise=True, method='ridge')
 
-        run2 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='ridge')
-        run2.TaskG()
-        # plotting_function.PlotDuo3D(run2.x, run2.y, run2.z, run2.z_predict, run2.m, run2.dim, lambda_val=lambda_val, function='terrain', method='ridge', savefig=False)
+                        # calculate the Franke function
+                        z = run.FrankeFunction(run.x, run.y)
 
-        run3 = RegressionAnalysis(dim=100, m=9, lambda_val=lambda_val, noise=False, method='lasso')
-        run3.TaskG()
+                        # compute desing matrix
+                        X = run.DesignMatrix(run.x, run.y)
 
-        plotting_function.PlotCuatro3D(run1.x, run1.y, run1.z, run1.z_predict,
-                                       run2.x, run2.y, run2.z_predict,
-                                       run3.x, run3.y, run3.z_predict,
-                                       run1.m, run1.dim, lambda_val=lambda_val, function='terrain', savefig=False)
+                        # resample data
+                        run.Bootstrap(X, z, n_boots=n_boots)
+
+                        # calculate z_predict with the best beta
+                        z_predict = np.dot(X,run.best_beta)
+                        z_predict = np.reshape(z_predict, (run.dim, run.dim))
+
+                        # calculate the confidence interval
+                        run.ConfidenceInterval(z, z_predict, X, run.best_beta)
+
+                        # fill arrays with MSE and R2 score for training and test data
+                        mse_train[m-1,l] = run.avg_mse_train
+                        mse_test[m-1,l]  = run.avg_mse_test
+                        r2s_train[m-1,l] = run.avg_r2s_train
+                        r2s_test[m-1,l]  = run.avg_r2s_test
+                        bias[m-1,l]      = run.bias_test**(1./2)
+                        variance[m-1,l]  = run.var_test
+
+                        # calculate confidence interval for maximum polynomial degree
+                        if list_of_lambdas[l] == min(list_of_lambdas) and method == 'ridge':
+                            ci_ridge      = run.con_int
+                            ci_beta_ridge = run.best_beta
+
+                        if list_of_lambdas[l] == min(list_of_lambdas) and method == 'lasso':
+                            ci_lasso      = run.con_int
+                            ci_beta_lasso = run.best_beta
+
+                # change method name to have capital letter in plot titles
+                if method == 'ridge':
+                    string_name = 'Ridge'
+                    mse_ridge_test = np.zeros(max_degree)
+                    r2s_ridge_test = np.zeros(max_degree)
+                    mse_ridge_test = mse_test[:,0]
+                    r2s_ridge_test = r2s_test[:,0]
+                else:
+                    string_name = 'Lasso'
+                    mse_lasso_test = np.zeros(max_degree)
+                    r2s_lasso_test = np.zeros(max_degree)
+                    mse_lasso_test = mse_test[:,0]
+                    r2s_lasso_test = r2s_test[:,0]
+
+                # plot MSE, R2 score and bias-variance tradeoff
+                plotting_function.PlotMultipleMSETestTrain(m_array, mse_train, mse_test, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
+                plotting_function.PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
+                plotting_function.PlotMultipleBiasVariance(m_array, bias, variance, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
+
+                if method == 'lasso':
+                    # plot surface for best lambda value for all regression methods
+                    # at the end of the loop (when the lasso method has been run)
+
+                    # print table values in latex format
+                    print('\nMSE for OLS, Ridge and Lasso')
+                    for m in range(max_degree):
+                        print('& %.3f & %.3f & %.3f' % (mse_ols_test[m], mse_ridge_test[m], mse_lasso_test[m]))
+
+                    print('\nR2 score for OLS, Ridge and Lasso')
+                    for m in range(max_degree):
+                        print('& %.3f & %.3f & %.3f' % (r2s_ols_test[m],r2s_ridge_test[m], r2s_lasso_test[m]))
+
+                    print('\nBeta values and confidence intervals for OLS, Ridge and Lasso for 5th degree polynomial')
+                    for k in range(len(ci_beta_ols)):
+                        print('%.3f & (%.3f, %.3f) & %.3f & (%.3f, %.3f) & %.3f & (%.3f, %.3f)' % (ci_beta_ols[k],
+                        ci_ols[k,0], ci_ols[k,1],ci_beta_ridge[k], ci_ridge[k,0], ci_ridge[k,1],ci_beta_lasso[k],
+                        ci_lasso[k,0], ci_lasso[k,1],))
+
+                    # create list of lambda values to plot as surfaces
+                    lambda_  = [min(list_of_lambdas), 1]
+
+                    for lam in lambda_:
+
+                        run1 = RegressionAnalysis(dim=100, m=max_degree, lambda_val=lam, noise=True, method='OLS')
+                        z1   = run1.FrankeFunction(run1.x, run1.y)
+                        X1   = run1.DesignMatrix(run1.x, run1.y)
+                        run1.Bootstrap(X1, z1, n_boots=n_boots)
+                        z_predict1 = np.dot(X1,run1.best_beta)
+                        z_predict1 = np.reshape(z_predict1, (run1.dim, run1.dim))
+
+                        run2 = RegressionAnalysis(dim=100, m=max_degree, lambda_val=lam, noise=True, method='ridge')
+                        z2   = run2.FrankeFunction(run2.x, run2.y)
+                        X2   = run2.DesignMatrix(run2.x, run2.y)
+                        run2.Bootstrap(X2, z2, n_boots=n_boots)
+                        z_predict2 = np.dot(X2,run2.best_beta)
+                        z_predict2 = np.reshape(z_predict2, (run2.dim, run2.dim))
+
+                        run3 = RegressionAnalysis(dim=100, m=max_degree, lambda_val=lam, noise=True, method='lasso')
+                        z3   = run3.FrankeFunction(run3.x, run3.y)
+                        X3   = run3.DesignMatrix(run3.x, run3.y)
+                        run3.Bootstrap(X3, z3, n_boots=n_boots)
+                        print(run3.best_beta)
+                        z_predict3 = np.dot(X3,run3.best_beta)
+                        z_predict3 = np.reshape(z_predict3, (run3.dim, run3.dim))
+
+                        plotting_function.PlotCuatro3D(run1.x, run1.y, z1, z_predict1,
+                                                       run2.x, run2.y, z_predict2,
+                                                       run3.x, run3.y, z_predict3,
+                                                       run1.m, run1.dim, lambda_val=lam, function=arg, savefig=False)
+
+    elif arg == 'terrain':
+
+        for method in methods:
+            if method == 'OLS':
+
+                # define empty arrays for different values
+                mse_train    = np.zeros(max_degree)
+                mse_ols_test = np.zeros(max_degree)
+                r2s_train    = np.zeros(max_degree)
+                r2s_ols_test = np.zeros(max_degree)
+                bias         = np.zeros(max_degree)
+                variance     = np.zeros(max_degree)
+
+                m_array    = np.linspace(1,max_degree,max_degree)
+
+                for m in range(1,max_degree+1):
+                    run = RegressionAnalysis(dim=200, m=m, noise=True)
+
+                    # calculate the Franke function
+                    z = run.Terrain()
+
+                    # compute desing matrix
+                    X = run.DesignMatrix(run.x, run.y)
+
+                    # resample data
+                    run.Bootstrap(X, z, n_boots=n_boots)
+
+                    # calculate z_predict with the best beta
+                    z_predict = np.dot(X,run.best_beta)
+                    z_predict = np.reshape(z_predict, (run.dim, run.dim))
+
+                    # calculate the confidence interval
+                    run.ConfidenceInterval(z, z_predict, X, run.best_beta)
+
+                    # fill empty arrays with MSE adn R2 score for training and test data
+                    mse_ols_test[m-1] = run.avg_mse_test
+                    mse_train[m-1]    = run.avg_mse_train
+                    r2s_train[m-1]    = run.avg_r2s_train
+                    r2s_ols_test[m-1] = run.avg_r2s_test
+                    bias[m-1]         = run.bias_test**(1./2)
+                    variance[m-1]     = run.var_test
+
+                    # calculate confidence interval for maximum polynomial degree
+                    if m == max_degree:
+                        ci_ols      = run.con_int
+                        ci_beta_ols = run.best_beta
+
+                # plot results
+                plotting_function.PlotMSETestTrain(m_array, mse_train, mse_ols_test, max_degree, function=arg, savefig=False)
+                plotting_function.PlotR2STestTrain(m_array, r2s_train, r2s_ols_test, max_degree, function=arg, savefig=False)
+                plotting_function.PlotBiasVariance(m_array, bias, variance, max_degree, function=arg, savefig=False)
+
+            else:
+
+                # define empty arrays for different values
+                mse_train = np.zeros((max_degree, len(list_of_lambdas)))
+                mse_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                r2s_train = np.zeros((max_degree, len(list_of_lambdas)))
+                r2s_test  = np.zeros((max_degree, len(list_of_lambdas)))
+                bias      = np.zeros((max_degree, len(list_of_lambdas)))
+                variance  = np.zeros((max_degree, len(list_of_lambdas)))
+                m_array   = np.linspace(1,max_degree,max_degree)
+
+                for l in range(len(list_of_lambdas)):
+                    for m in range(1,max_degree+1):
+                        run = RegressionAnalysis(dim=200, m=m, lambda_val=l, noise=True, method='ridge')
+
+                        # calculate the Franke function
+                        z = run.Terrain()
+
+                        # compute desing matrix
+                        X = run.DesignMatrix(run.x, run.y)
+
+                        # resample data
+                        run.Bootstrap(X, z, n_boots=n_boots)
+
+                        # calculate z_predict with the best beta
+                        z_predict = np.dot(X,run.best_beta)
+                        z_predict = np.reshape(z_predict, (run.dim, run.dim))
+
+                        # calculate the confidence interval
+                        run.ConfidenceInterval(z, z_predict, X, run.best_beta)
+
+                        # fill arrays with MSE and R2 score for training and test data
+                        mse_train[m-1,l] = run.avg_mse_train
+                        mse_test[m-1,l]  = run.avg_mse_test
+                        r2s_train[m-1,l] = run.avg_r2s_train
+                        r2s_test[m-1,l]  = run.avg_r2s_test
+                        bias[m-1,l]      = run.bias_test**(1./2)
+                        variance[m-1,l]  = run.var_test
+
+                        # calculate confidence interval for maximum polynomial degree
+                        if list_of_lambdas[l] == min(list_of_lambdas) and method == 'ridge':
+                            ci_ridge      = run.con_int
+                            ci_beta_ridge = run.best_beta
+
+                        if list_of_lambdas[l] == min(list_of_lambdas) and method == 'lasso':
+                            ci_lasso      = run.con_int
+                            ci_beta_lasso = run.best_beta
+
+                # change method name to have capital letter for plotting purposes
+                if method == 'ridge':
+                    string_name = 'Ridge'
+                    mse_ridge_test = np.zeros(max_degree)
+                    r2s_ridge_test = np.zeros(max_degree)
+                    mse_ridge_test = mse_test[:,0]
+                    r2s_ridge_test = r2s_test[:,0]
+                else:
+                    string_name = 'Lasso'
+                    mse_lasso_test = np.zeros(max_degree)
+                    r2s_lasso_test = np.zeros(max_degree)
+                    mse_lasso_test = mse_test[:,0]
+                    r2s_lasso_test = r2s_test[:,0]
+
+                # plot MSE, R2 score and bias-variance tradeoff
+                plotting_function.PlotMultipleMSETestTrain(m_array, mse_train, mse_test, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
+                plotting_function.PlotMultipleR2STestTrain(m_array, r2s_train, r2s_test, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
+                plotting_function.PlotMultipleBiasVariance(m_array, bias, variance, list_of_lambdas, max_degree, string_name, function=arg, savefig=False)
 
 
+                if method == 'lasso':
+                    # plot surface for best lambda value for all regression methods
+                    # at the end of the loop (when the lasso method has been run)
 
+                    # print table values in latex format
+                    print('\nMSE for OLS, Ridge and Lasso')
+                    for m in range(max_degree):
+                        print('& %.3f & %.3f & %.3f' % (mse_ols_test[m], mse_ridge_test[m], mse_lasso_test[m]))
 
+                    print('\nR2 score for OLS, Ridge and Lasso')
+                    for m in range(max_degree):
+                        print('& %.3f & %.3f & %.3f' % (r2s_ols_test[m],r2s_ridge_test[m], r2s_lasso_test[m]))
 
-    # run.Benchmark()
+                    print('\nBeta values and confidence intervals for OLS, Ridge and Lasso for 5th degree polynomial')
+                    for k in range(len(ci_beta_ols)):
+                        print('%.3f & (%.3f, %.3f) & %.3f & (%.3f, %.3f) & %.3f & (%.3f, %.3f)' % (ci_beta_ols[k],
+                        ci_ols[k,0], ci_ols[k,1],ci_beta_ridge[k], ci_ridge[k,0], ci_ridge[k,1],ci_beta_lasso[k],
+                        ci_lasso[k,0], ci_lasso[k,1],))
+
+                    # create list of lambda values to plot as surfaces
+                    lambda_  = [min(list_of_lambdas), 1]
+
+                    for lam in lambda_:
+
+                        run1 = RegressionAnalysis(dim=200, m=max_degree, lambda_val=lam, noise=True, method='OLS')
+                        z1   = run1.Terrain()
+                        X1   = run1.DesignMatrix(run1.x, run1.y)
+                        run1.Bootstrap(X1, z1, n_boots=n_boots)
+                        z_predict1 = np.dot(X1,run1.best_beta)
+                        z_predict1 = np.reshape(z_predict1, (run1.dim, run1.dim))
+
+                        run2 = RegressionAnalysis(dim=200, m=max_degree, lambda_val=lam, noise=True, method='ridge')
+                        z2   = run2.Terrain()
+                        X2   = run2.DesignMatrix(run2.x, run2.y)
+                        run2.Bootstrap(X2, z2, n_boots=n_boots)
+                        z_predict2 = np.dot(X2,run2.best_beta)
+                        z_predict2 = np.reshape(z_predict2, (run2.dim, run2.dim))
+
+                        run3 = RegressionAnalysis(dim=200, m=max_degree, lambda_val=lam, noise=True, method='lasso')
+                        z3   = run3.Terrain()
+                        X3   = run3.DesignMatrix(run3.x, run3.y)
+                        run3.Bootstrap(X3, z3, n_boots=n_boots)
+                        z_predict3 = np.dot(X3,run3.best_beta)
+                        z_predict3 = np.reshape(z_predict3, (run3.dim, run3.dim))
+
+                        plotting_function.PlotCuatro3D(run1.x, run1.y, z1, z_predict1,
+                                                       run2.x, run2.y, z_predict2,
+                                                       run3.x, run3.y, z_predict3,
+                                                       run1.m, run1.dim, lambda_val=lam, function=arg, savefig=False)
+
+    else:
+        print('Invalid input argument. Please specify "franke" or "terrain".')

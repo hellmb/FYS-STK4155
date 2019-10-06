@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 Figures/
 plot_unused.py
+Report/

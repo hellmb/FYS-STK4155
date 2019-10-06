@@ -3,7 +3,7 @@ import matplotlib.colors
 def DefineColormap(n):
     """
     function for deciding costum colormaps
-    argument n must be a string
+    param n: name of colormap, string
     """
 
     if n == 'afternoon':
@@ -20,7 +20,7 @@ def DefineColormap(n):
         colormap = cm_sunset    = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#363237","#2D4262","#73605B","#D09683"])
     elif n == 'watery':
         colormap = cm_watery    = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#021C1E","#004445","#2C7873","#6FB98F"])
-    # else:
-    #     colormap = cm_afternoon = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#8C0004","#C8000A","#E8A735","#E2C499"])
+    else:
+        colormap = cm_afternoon
 
     return colormap

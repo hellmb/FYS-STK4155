@@ -1,3 +1,4 @@
+import sys
 import matplotlib.colors
 
 def DefineColormap(n):
@@ -33,6 +34,8 @@ def DefineColormap(n):
     elif n == 'candy':
         colormap = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#AD1457","#D81B60","#FFA000","#FDD835","#FFEE58"])
     else:
-        colormap = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#8C0004","#C8000A","#E8A735","#E2C499"])
+        print('Specify name of colormap (string) as input argument.')
+        sys.exit(0)
+
 
     return colormap

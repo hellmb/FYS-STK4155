@@ -1,59 +1,46 @@
-import os
+import data
+from logistic_regression import LogisticRegression
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-
-cwd = os.getcwd()
-file = cwd + '/default of credit card clients.xls'
-
-na_values = {}
-df = pd.read_excel(file, header=1, index_col=0, na_values=na_values)
-
-# remove uncategorised values from EDUCATION and MARRIAGE
-df = df.drop(df[df.EDUCATION < 1].index)
-df = df.drop(df[df.EDUCATION > 4].index)
-
-df = df.drop(df[df.MARRIAGE < 1].index)
-df = df.drop(df[df.MARRIAGE > 3].index)
-
-# remove uncategorised values from PAY
-df_pay = [df.PAY_0, df.PAY_2, df.PAY_3, df.PAY_4, df.PAY_5, df.PAY_6]
-vals   = [-2, 0]
-for s in df_pay:
-    for i in vals:
-        df = df.drop(df[s == i].index)
 
 
-# remove zeros from BILL_AMT and PAY_AMT
-df = df.drop(df[(df.BILL_AMT1 == 0) &
-                (df.BILL_AMT2 == 0) &
-                (df.BILL_AMT3 == 0) &
-                (df.BILL_AMT4 == 0) &
-                (df.BILL_AMT5 == 0) &
-                (df.BILL_AMT6 == 0)].index)
+if __name__ == '__main__':
 
-df = df.drop(df[(df.PAY_AMT1 == 0) &
-                (df.PAY_AMT2 == 0) &
-                (df.PAY_AMT3 == 0) &
-                (df.PAY_AMT4 == 0) &
-                (df.PAY_AMT5 == 0) &
-                (df.PAY_AMT6 == 0)].index)
+    lr = LogisticRegression()
+    lr.regression_analysis()
 
-
-# divide data into features and target
-X = df.loc[:, df.columns != 'default payment next month'].values
-y = df.loc[:, df.columns == 'default payment next month'].values
-
-
-# use OneHotEncoder to scale each row
-onehotencoder = OneHotEncoder(categories='auto')
-preprocessor  = ColumnTransformer([("", onehotencoder, [3])], remainder='passthrough')
-
-# X = preprocessor.fit_transform(X)
-
-print(onehotencoder.fit_transform(X))
-
-print(X)
-y.shape
+    # # initialise features and target
+    # X, y = data.design_matrix()
+    #
+    # # set up quantities
+    # n = y.shape[0]            # number of data points
+    # M = 5                     # size of mini-batches
+    # minibatches = int(n/M)    # number of mini-batches
+    #
+    # # define random beta
+    # # beta_ols  = np.dot(np.linalg.inv(np.dot(X.T,X)),np.dot(X.T,y))
+    # beta_rand = np.random.rand(X.shape[1], 1)
+    #
+    # cost_old = cost_function(X, y, beta_rand)
+    #
+    # # test gradient descent method
+    # max_epoch = 100
+    # epochs = np.linspace(0,max_epoch,max_epoch+1)
+    #
+    # beta = beta_rand
+    #
+    # avg_cost = np.zeros(len(epochs))
+    # for e in range(len(epochs)):
+    #     i = 0
+    #     cost = np.zeros(minibatches+1)
+    #     batches = np.zeros(minibatches+1)
+    #     for batch in range(0,n,M):
+    #         beta = gradient_descent(X[batch:batch+M,:], y[batch:batch+M,:], beta, M)
+    #
+    #         cost[i] = cost_function(X[batch:batch+M,:], y[batch:batch+M,:], beta)
+    #         i += 1
+    #
+    #     avg_cost[e] = np.sum(cost)/(minibatches+1)
+    #
+    # plt.plot(epochs, avg_cost)
+    # plt.show()

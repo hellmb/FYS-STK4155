@@ -10,6 +10,64 @@ class MachineLearning:
         initialise the instance of the class
         """
 
+    def mean_squared_error(self, y, y_predict):
+        """
+        function for calculating the mean squared error (MSE)
+        param y: function array
+        param y_predict: predicted function array
+        """
+
+        len_y = len(np.ravel(y))
+
+        mse = np.sum((y - y_predict)**2)/len_y
+
+        return mse
+
+    def r2_score(self, y, y_predict):
+        """
+        function for calculating the R2 score
+        param y: function array
+        param y_predict: predicted function array
+        """
+
+        len_y = len(np.ravel(y))
+
+        # calculate mean value of y_predict
+        mean_y_predict = np.sum(y_predict)/len_y
+
+        r2score = 1. - np.sum((y - y_predict)**2)/np.sum((y - mean_y_predict)**2)
+
+        return r2score
+
+    def accuracy(self, y, y_predict):
+        """
+        function for calculating the accuracy score
+        """
+
+        if len(y.shape) > 1:
+            y = np.ravel(y)
+
+        if len(y_predict.shape) > 1:
+            y_predict = np.ravel(y_predict)
+
+        # the values of y_predict are not binary
+        y_predict[y_predict < 0.5] = 0
+        y_predict[y_predict >= 0.5] = 1
+
+        # calculate indicator function
+        I = np.zeros(len(y))
+
+        # more elegant way of doing this?
+        for i in range(0,len(y)-2):
+            # print(i)
+            if y[i] == y_predict[i]:
+                I[i] = 1
+            else:
+                I[i] = 0
+
+        accuracy = np.sum(I)/len(I)
+
+        return accuracy
 
     def sigmoid(self, X, beta):
         """
@@ -50,7 +108,7 @@ class MachineLearning:
         """
 
         # learning rate - put in input arg?
-        gamma = 0.001
+        eta0 = 0.001
 
         p = self.sigmoid(X, beta)
 
@@ -58,6 +116,6 @@ class MachineLearning:
         dC_dbeta = -(np.dot(X.T,(y - p)))/N
 
         # stochastic gradient descent
-        new_beta = beta - gamma*dC_dbeta
+        new_beta = beta - eta0*dC_dbeta
 
         return new_beta

@@ -22,6 +22,9 @@ class NeuralNetwork(MachineLearning):
         self.X = X
         self.y = y
 
+        self.n_input    = X.shape[0]
+        self.n_features = X.shape[1]
+
         # define hidden layers and nodes (list)
         self.hidden_layers = len(nodes)
         self.nodes         = nodes
@@ -33,9 +36,7 @@ class NeuralNetwork(MachineLearning):
         self.lamb = lamb
 
         # mini-batches
-        self.n           = self.y.shape[0]       # number of data points
-        self.M           = minibatch_size        # size of mini-batches
-        self.minibatches = int(self.n/self.M)    # number of mini-batches
+        self.minibatch_sz = minibatch_size                          # size of mini-batches
 
         # define epochs
         self.max_epoch = epochs
@@ -53,9 +54,10 @@ class NeuralNetwork(MachineLearning):
         self.weights = []
         self.biases  = []
 
-        for n in range(len(self.nodes)):
+        for n in range(self.hidden_layers):
             if n == 0:
-                input_to_node = self.X.shape[1]
+                # input_to_node = self.X.shape[1]
+                input_to_node = self.n_features
             else:
                 input_to_node = w.shape[1]
 
@@ -86,6 +88,13 @@ class NeuralNetwork(MachineLearning):
             z = np.dot(a,w) + b.T
             self.a.append(np.array(self.sigmoid(z)))
 
+        # calculate output probabilities with softmax?
+        # print(z.shape)
+        # self.prob = np.exp(z)/np.sum(np.exp(z),axis=1,keepdims=True)
+        # print(self.prob.shape)
+        # print(self.a[-1].shape)
+        # sys.exit()
+
     def backpropagation(self, y):
         """
         function performing back-propagation
@@ -99,18 +108,19 @@ class NeuralNetwork(MachineLearning):
 
         # back propagation for remaining layers
         for l in range(1,self.hidden_layers+1):
-            elf    = self.weights[-l] @ delta[-1]
-            rudolf = self.a[-l-1]*(1-self.a[-l-1])
-            santa  = rudolf.T*elf
+            delta_l = (self.a[-l-1]*(1-self.a[-l-1])).T * (self.weights[-l] @ delta[-1])
+            # elf    = self.weights[-l] @ delta[-1]
+            # rudolf = self.a[-l-1]*(1-self.a[-l-1])
+            # santa  = rudolf.T*elf
 
             # append to list of deltas
-            delta.append(np.array(santa))
+            delta.append(np.array(delta_l))
 
         # update weights and biases
         for l in range(1,self.hidden_layers+2):
-            regularisation = ((self.eta*self.lamb)/self.weights[-l].shape[1])*self.weights[-l]
-            self.weights[-l] = self.weights[-l] - (self.eta*(self.a[-l-1].T @ delta[l-1].T))/self.minibatches - regularisation
-            self.biases[-l]  = self.biases[-l] - (self.eta*np.sum(delta[l-1],axis=1,keepdims=True))/self.minibatches
+            regularisation = self.lamb * self.weights[-l]/self.weights[-l].shape[1]
+            self.weights[-l] = self.weights[-l] - self.eta*((self.a[-l-1].T @ delta[l-1].T)/self.minibatch_sz - regularisation)
+            self.biases[-l]  = self.biases[-l] - (self.eta*np.sum(delta[l-1],axis=1,keepdims=True))/self.minibatch_sz
 
     def bootstrap(self):
         """
@@ -135,9 +145,9 @@ class NeuralNetwork(MachineLearning):
             cost_epoch_test  = np.zeros(len(self.epochs))
 
             for j in range(len(self.epochs)):
-                for i in range(0,self.n,self.M):
-                    self.feed_forward(self.X_train[i:i+self.M,:])
-                    self.backpropagation(self.y_train[i:i+self.M,:])
+                for i in range(0,self.X_train.shape[0],self.minibatch_sz):
+                    self.feed_forward(self.X_train[i:i+self.minibatch_sz,:])
+                    self.backpropagation(self.y_train[i:i+self.minibatch_sz,:])
 
                 # calculate accuracy for training data
                 self.feed_forward(self.X_train)
@@ -150,9 +160,13 @@ class NeuralNetwork(MachineLearning):
                 if j%50 == 0:
                     print('Acc train: ',acc_epoch_train[j])
                     print('Acc test:  ',acc_epoch_test[j])
+                    print('Max weight: ',np.max(self.weights[0]))
+                    print('Max weight: ',np.max(self.weights[1]))
 
                 # create random indices for every bootstrap
-                random_index = np.random.randint(self.X_train.shape[0], size=self.X_train.shape[0])
+                random_index = np.arange(self.X_train.shape[0])
+                np.random.shuffle(random_index)
+                # random_index = np.random.randint(self.X_train.shape[0], size=self.X_train.shape[0])
 
                 # resample X_train and y_train
                 self.X_train = self.X_train[random_index,:]
@@ -171,10 +185,10 @@ class NeuralNetwork(MachineLearning):
         """
 
         # shuffle X and y before splitting into training and test data
-        index = np.arange(self.X.shape[0])
-        np.random.shuffle(index)
-        self.X = self.X[index,:]
-        self.y = self.y[index,:]
+        random_index = np.arange(self.X.shape[0])
+        np.random.shuffle(random_index)
+        self.X = self.X[random_index,:]
+        self.y = self.y[random_index,:]
 
         # split into training and test data
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2)

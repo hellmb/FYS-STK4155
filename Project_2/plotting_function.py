@@ -20,7 +20,7 @@ def accuracy_epoch(epoch, acc_train, acc_test, savefig=False):
     plt.title('Accuracy as a function of epoch', fontsize=20)
     plt.xlabel('Epoch', fontsize=15)
     plt.ylabel(r'$\epsilon$', fontsize=15)
-    plt.legend(loc='upper right', fontsize=15)
+    plt.legend(loc='lower right', fontsize=15)
     plt.show()
 
     if savefig:

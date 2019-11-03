@@ -86,7 +86,8 @@ class LogisticRegression(MachineLearning):
                 cost_epoch_test[j]  = self.cost_function(self.X_test, self.y_test, beta)
 
                 # create random indices for every bootstrap
-                random_index = np.random.randint(self.X_train.shape[0], size=self.X_train.shape[0])
+                random_index = np.arange(self.X_train.shape[0])
+                np.random.shuffle(random_index)
 
                 # resample X_train and y_train
                 self.X_train = self.X_train[random_index,:]

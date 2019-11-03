@@ -39,70 +39,89 @@ class MachineLearning:
 
         return r2score
 
-    def accuracy(self, y, y_predict):
+    def accuracy_log(self, y, y_predict):
         """
-        function for calculating the accuracy score
+        function for calculating the accuracy score (logistic regression)
         """
 
-        if len(y.shape) > 1:
-            y = np.ravel(y)
-
-        if len(y_predict.shape) > 1:
-            y_predict = np.ravel(y_predict)
+        len_y = len(np.ravel(y))
 
         # the values of y_predict are not binary
         y_predict[y_predict < 0.5] = 0
         y_predict[y_predict >= 0.5] = 1
 
-        # calculate indicator function
-        I = np.zeros(len(y))
-
-        # more elegant way of doing this?
-        for i in range(0,len(y)-2):
-            # print(i)
-            if y[i] == y_predict[i]:
-                I[i] = 1
-            else:
-                I[i] = 0
-
-        accuracy = np.sum(I)/len(I)
+        accuracy = np.sum(y == y_predict)/len_y
 
         return accuracy
 
-    def sigmoid(self, X, beta):
+    def accuracy_nn(self, yt, yp):
         """
-        calculate the sigmoid function (probability of y = 1)
+        function for calculating the accuracy score (neural network)
         """
 
-        y_predict = np.dot(X, beta)
-        p = np.exp(y_predict)/(1. + np.exp(y_predict))
-        # p0 = 1 - p1
+        # print('y target:  ',yt[:5,:])
+        # print('y predict: ',yp[:5,:])
 
-        return p #p1, p0
+        # inputs are one-hot encoded -> need to fix!!
+        find_max_yt = np.argmax(yt,axis=1)
+        find_max_yp = np.argmax(yp,axis=1)
 
+        accuracy = np.sum(find_max_yt == find_max_yp)/len(find_max_yt)
+
+        return accuracy
+
+
+    def sigmoid(self, theta):
+        """
+        calculate the sigmoid function
+        """
+
+        sigma = np.exp(theta)/(1. + np.exp(theta))
+
+        return sigma
 
     def cost_function(self, X, y, beta):
         """
         cost/loss function
         param X: design matrix (features), matrix
-        param y: target, array
+        param y: targets, array
         param beta: beta, array
         """
 
         N = len(y)
 
-        p = self.sigmoid(X, beta)
+        y_predict = np.dot(X, beta)
 
-        C = -np.sum(y*np.log10(p) + (1 - y)*np.log10(1 - p))/N
+        p = self.sigmoid(y_predict)
+
+        C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N
 
         return C
+
+    # def cost_function_nn(self, X, y, beta):
+    #     """
+    #     cost/loss function for neural network
+    #     param X: design matrix (features), matrix
+    #     param y: targets, array
+    #     param beta: beta, array
+    #     """
+    #
+    #     N = len(y)
+    #
+    #     y_predict = np.dot(X, beta)
+    #
+    #     p = self.sigmoid(y_predict)
+    #
+    #     C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N
+    #
+    #     return C
 
 
     def gradient_descent(self, X, y, beta, N):
         """
         stochastic gradient descent with mini-batches
         param X: design matrix (features), matrix
-        param y: target, array
+        param y: targets, array
         param beta: previous beta, array
         param N: batch size, int
         """
@@ -110,7 +129,9 @@ class MachineLearning:
         # learning rate - put in input arg?
         eta0 = 0.001
 
-        p = self.sigmoid(X, beta)
+        y_predict = np.dot(X, beta)
+
+        p = self.sigmoid(y_predict)
 
         # calculate the gradient of the cost function
         dC_dbeta = -(np.dot(X.T,(y - p)))/N

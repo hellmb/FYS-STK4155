@@ -17,9 +17,13 @@ if __name__ == '__main__':
     # initialise features and targets using credit card data
     X, y = data.design_matrix()
 
+    # X = X[0:500,:]
+    # print(X.shape)
+    # sys.exit()
+
     if arg == 'log':
 
-        lr = LogisticRegression(X, y, n_boots=1, benchmark=False)
+        lr = LogisticRegression(X, y, 0, n_boots=1, benchmark=False)
         lr.logistic_regression()
 
     elif arg == 'nn':
@@ -30,7 +34,7 @@ if __name__ == '__main__':
         num_targets = np.sum(y,axis=0)
         print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
 
-        nn = NeuralNetwork(X, y, eta=0.05, lamb=0, minibatch_size=100, epochs=2000, n_boots=1, nodes=[10,8])
+        nn = NeuralNetwork(X, y, eta=0.01, lamb=0.001, minibatch_size=100, epochs=500, n_boots=1, nodes=[50])
         nn.mlp()
 
     elif arg == 'bc_log':
@@ -65,7 +69,7 @@ if __name__ == '__main__':
         num_targets = np.sum(y,axis=0)
         print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
 
-        nn = NeuralNetwork(X, y, eta=0.01, lamb=0.1, minibatch_size=50, epochs=2000, n_boots=1, nodes=[8,10])
+        nn = NeuralNetwork(X, y, eta=0.1, lamb=0, minibatch_size=5, epochs=50, n_boots=1, nodes=[50])
         nn.mlp()
 
     else:

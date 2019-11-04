@@ -12,7 +12,7 @@ class LogisticRegression(MachineLearning):
     inherits from class MachineLearning
     """
 
-    def __init__(self, X, y, n_boots, benchmark=False):
+    def __init__(self, X, y, lamb, n_boots=1, benchmark=False):
         """
         initialise the instance of the class
         """
@@ -27,11 +27,13 @@ class LogisticRegression(MachineLearning):
         self.minibatches = int(self.n/self.M)    # number of mini-batches
 
         # define epochs
-        self.max_epoch = 100
+        self.max_epoch = 1000
         self.epochs    = np.linspace(0,self.max_epoch,self.max_epoch+1)
 
         self.n_boots = n_boots
         self.benchmark = benchmark
+
+        self.lamb = lamb
 
     def array_setup(self):
         """
@@ -82,8 +84,8 @@ class LogisticRegression(MachineLearning):
                 # calculate accuracy and cost for each epoch
                 acc_epoch_train[j] = self.accuracy_log(self.y_train, ypred_train)
                 acc_epoch_test[j]  = self.accuracy_log(self.y_test, ypred_test)
-                cost_epoch_train[j] = self.cost_function(self.X_train, self.y_train, beta)
-                cost_epoch_test[j]  = self.cost_function(self.X_test, self.y_test, beta)
+                cost_epoch_train[j] = self.cost_function(self.X_train, self.y_train, beta, self.lamb)
+                cost_epoch_test[j]  = self.cost_function(self.X_test, self.y_test, beta, self.lamb)
 
                 # create random indices for every bootstrap
                 random_index = np.arange(self.X_train.shape[0])
@@ -139,7 +141,8 @@ class LogisticRegression(MachineLearning):
         self.bootstrap()
 
         # plot cost for training and test data
-        plotting_function.cost_epoch(self.epochs,self.cost_train,self.cost_test,savefig=False)
+        plotting_function.accuracy_epoch(self.epochs,self.acc_train,self.acc_test,savefig=True)
+        plotting_function.cost_epoch(self.epochs,self.cost_train,self.cost_test,savefig=True)
 
         # plot accuracy for benchmarking
         if self.benchmark:

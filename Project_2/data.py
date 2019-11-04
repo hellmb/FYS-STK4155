@@ -61,7 +61,7 @@ def preprocessing(remove_data=False):
 
     # use column transformer to one-hot encode the gender feature and normalise all other features with the L2 norm
     preprocessor = ColumnTransformer([('onehotencoder', onehotencoder, [1,2,3]),
-                                      ('norm2', Normalizer(norm='l2'), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
+                                      ('norm1', Normalizer(norm='l1'), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
 
     # decide on normaliser!!
 

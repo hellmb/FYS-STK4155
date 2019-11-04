@@ -46,11 +46,32 @@ class MachineLearning:
 
         len_y = len(np.ravel(y))
 
+        # y = np.ravel(y)
+
+        # print(y.shape)
+        # print(y.dtype)
+
+        # print(y_predict.shape)
+        # print(y_predict.dtype)
+
+        # y_predict = np.random.rand(len_y,1)
+
+        # print(y_predict.shape)
+        # print(y_predict.dtype)
+
+        # print('yp before')
+        # print(y_predict)
+
         # the values of y_predict are not binary
         y_predict[y_predict < 0.5] = 0
         y_predict[y_predict >= 0.5] = 1
 
-        accuracy = np.sum(y == y_predict)/len_y
+        # print('yp after')
+        # print(y_predict)
+        #
+        # print(y == y_predict.astype(int))
+
+        accuracy = np.sum(y == y_predict.astype(int))/len_y
 
         return accuracy
 
@@ -80,7 +101,16 @@ class MachineLearning:
 
         return sigma
 
-    def cost_function(self, X, y, beta):
+    def softmax(self,z):
+        """
+        calculate probabilities using the sofmax function
+        """
+
+        softmax = np.exp(z)/np.sum(np.exp(z),axis=1,keepdims=True)
+
+        return softmax
+
+    def cost_function(self, X, y, beta, lamb):
         """
         cost/loss function
         param X: design matrix (features), matrix
@@ -94,27 +124,23 @@ class MachineLearning:
 
         p = self.sigmoid(y_predict)
 
-        C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N
+        C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N - lamb/(2*N) * np.sum(beta[-1]**2)
 
         return C
 
-    # def cost_function_nn(self, X, y, beta):
-    #     """
-    #     cost/loss function for neural network
-    #     param X: design matrix (features), matrix
-    #     param y: targets, array
-    #     param beta: beta, array
-    #     """
-    #
-    #     N = len(y)
-    #
-    #     y_predict = np.dot(X, beta)
-    #
-    #     p = self.sigmoid(y_predict)
-    #
-    #     C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N
-    #
-    #     return C
+    def cost_function_nn(self, yt, a, w, lamb):
+        """
+        cost/loss function for neural network
+        param yt: targets
+        param a: prediction
+        param w: weights
+        param lamb: regularisation hyper-parameter
+        """
+        N = len(yt)
+
+        C = -np.sum(yt*np.log(a[-1]) + (1 - yt)*np.log(1 - a[-1]))/N - lamb/(2*N) * np.sum(w[-1]**2)
+
+        return C
 
 
     def gradient_descent(self, X, y, beta, N):

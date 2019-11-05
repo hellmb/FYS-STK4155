@@ -12,7 +12,7 @@ class LogisticRegression(MachineLearning):
     inherits from class MachineLearning
     """
 
-    def __init__(self, X, y, lamb, n_boots=1, benchmark=False):
+    def __init__(self, X, y, eta, lamb, minibatch_size, epochs, n_boots, benchmark=False):
         """
         initialise the instance of the class
         """
@@ -22,18 +22,23 @@ class LogisticRegression(MachineLearning):
         self.y = y
 
         # set up quantities
-        self.n           = self.y.shape[0]       # number of data points
-        self.M           = 5                     # size of mini-batches
-        self.minibatches = int(self.n/self.M)    # number of mini-batches
+        self.n            = self.y.shape[0]                  # number of data points
+        self.minibatch_sz = minibatch_size                   # size of mini-batches
+        self.minibatches  = int(self.n/self.minibatch_sz)    # number of mini-batches
 
         # define epochs
-        self.max_epoch = 1000
+        self.max_epoch = epochs
         self.epochs    = np.linspace(0,self.max_epoch,self.max_epoch+1)
 
-        self.n_boots = n_boots
-        self.benchmark = benchmark
-
+        # define hyper-parameters
+        self.eta  = eta
         self.lamb = lamb
+
+        # number of bootstraps
+        self.n_boots = n_boots
+
+        # set to True to run benchmarks
+        self.benchmark = benchmark
 
     def array_setup(self):
         """
@@ -74,8 +79,8 @@ class LogisticRegression(MachineLearning):
             cost_epoch_test  = np.zeros(len(self.epochs))
 
             for j in range(len(self.epochs)):
-                for i in range(0,self.n,self.M):
-                    beta = self.gradient_descent(self.X_train[i:i+self.M,:], self.y_train[i:i+self.M,:], beta, self.M)
+                for i in range(0,self.n,self.minibatch_sz):
+                    beta = self.gradient_descent(self.X_train[i:i+self.minibatch_sz,:], self.y_train[i:i+self.minibatch_sz,:], beta, self.eta, self.minibatch_sz)
                     # cost = self.cost_function(self.X_train, self.y_train, beta)
 
                 ypred_train = np.dot(self.X_train,beta)

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, Normalizer
+from sklearn.preprocessing import OneHotEncoder, Normalizer, StandardScaler
 from sklearn.compose import ColumnTransformer
 from warnings import filterwarnings
 
@@ -60,13 +60,19 @@ def preprocessing(remove_data=False):
     onehotencoder = OneHotEncoder(categories='auto')
 
     # use column transformer to one-hot encode the gender feature and normalise all other features with the L2 norm
-    preprocessor = ColumnTransformer([('onehotencoder', onehotencoder, [1,2,3]),
-                                      ('norm1', Normalizer(norm='l1'), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
+    # preprocessor = ColumnTransformer([('onehotencoder', onehotencoder, [1,2,3]),
+    #                                   ('norm1', Normalizer(norm='l1'), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
 
     # decide on normaliser!!
 
     # transform X
-    features = preprocessor.fit_transform(features, targets)
+    # features = preprocessor.fit_transform(features, targets)
+
+    ss = StandardScaler()
+    features = ss.fit_transform(features)
+
+    # set up the design matrix X
+    features = np.c_[np.ones((features.shape[0], 1)), features]
 
     return features, targets
 
@@ -75,10 +81,13 @@ def onehotencode(targets):
     one-hot encode targets
     """
 
-    onehotencoder = OneHotEncoder(categories='auto')
-    preprocess   = ColumnTransformer([('onehot',onehotencoder,[0])])
+    # onehotencoder = OneHotEncoder(categories='auto')
+    # preprocess   = ColumnTransformer([('onehot',onehotencoder,[0])])
+    #
+    # target_new = preprocess.fit_transform(targets)
 
-    target_new = preprocess.fit_transform(targets)
+    onehotencoder = OneHotEncoder()
+    target_new = onehotencoder.fit_transform(targets).toarray()
 
     return target_new
 
@@ -87,21 +96,24 @@ def normalise_cancer_data(features,targets):
     normalise cancer data feature matrix
     """
 
-    preprocess = ColumnTransformer([('norm2',Normalizer(norm='l2'),[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])])
+    # preprocess = ColumnTransformer([('norm2',Normalizer(norm='l2'),[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])])
+    #
+    # norm_features = preprocess.fit_transform(features,targets)
 
-    norm_features = preprocess.fit_transform(features,targets)
+    ss = StandardScaler()
+    features = ss.fit_transform(features)
 
-    return norm_features
+    return features
 
-def design_matrix():
-    """
-    function that returns the design matrix X
-    """
-
-    # get feature matrix and targets
-    X, y = preprocessing(remove_data=True)
-
-    # set up the design matrix X
-    X = np.c_[np.ones((X.shape[0], 1)), X]
-
-    return X, y
+# def design_matrix():
+#     """
+#     function that returns the design matrix X
+#     """
+#
+#     # get feature matrix and targets
+#     X, y = preprocessing(remove_data=True)
+#
+#     # set up the design matrix X
+#     X = np.c_[np.ones((X.shape[0], 1)), X]
+#
+#     return X, y

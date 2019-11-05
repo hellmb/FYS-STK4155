@@ -46,30 +46,9 @@ class MachineLearning:
 
         len_y = len(np.ravel(y))
 
-        # y = np.ravel(y)
-
-        # print(y.shape)
-        # print(y.dtype)
-
-        # print(y_predict.shape)
-        # print(y_predict.dtype)
-
-        # y_predict = np.random.rand(len_y,1)
-
-        # print(y_predict.shape)
-        # print(y_predict.dtype)
-
-        # print('yp before')
-        # print(y_predict)
-
         # the values of y_predict are not binary
         y_predict[y_predict < 0.5] = 0
         y_predict[y_predict >= 0.5] = 1
-
-        # print('yp after')
-        # print(y_predict)
-        #
-        # print(y == y_predict.astype(int))
 
         accuracy = np.sum(y == y_predict.astype(int))/len_y
 
@@ -143,17 +122,15 @@ class MachineLearning:
         return C
 
 
-    def gradient_descent(self, X, y, beta, N):
+    def gradient_descent(self, X, y, beta, eta, N):
         """
         stochastic gradient descent with mini-batches
         param X: design matrix (features), matrix
         param y: targets, array
         param beta: previous beta, array
+        param eta: learning rate
         param N: batch size, int
         """
-
-        # learning rate - put in input arg?
-        eta0 = 0.001
 
         y_predict = np.dot(X, beta)
 
@@ -163,6 +140,6 @@ class MachineLearning:
         dC_dbeta = -(np.dot(X.T,(y - p)))/N
 
         # stochastic gradient descent
-        new_beta = beta - eta0*dC_dbeta
+        new_beta = beta - eta*dC_dbeta
 
         return new_beta

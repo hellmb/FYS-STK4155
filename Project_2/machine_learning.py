@@ -1,3 +1,4 @@
+import data
 import numpy as np
 
 class MachineLearning:
@@ -10,32 +11,35 @@ class MachineLearning:
         initialise the instance of the class
         """
 
-    def mean_squared_error(self, y, y_predict):
+    def mean_squared_error(self, yt, yp, w, lamb):
         """
-        function for calculating the mean squared error (MSE)
-        param y: function array
-        param y_predict: predicted function array
+        sum of squares
+        param yt: targets
+        param yp: prediction
+        param w: weights (beta)
+        param lamb: regularisation hyper-parameter
         """
 
-        len_y = len(np.ravel(y))
 
-        mse = np.sum((y - y_predict)**2)/len_y
+        # score = 0
+        # for j in range(yt.shape[1]):
+        #     score += np.sum((yp[:,j] - yt[:,j])**2)
+        #
+        # C = score/len(yt)
+
+        mse = np.sum((yt - yp)**2)/len(yt) + (lamb * np.sum(w[-1]**2))/len(yt)
 
         return mse
 
-    def r2_score(self, y, y_predict):
+    def r2_score(self, yt, yp):
         """
         function for calculating the R2 score
-        param y: function array
-        param y_predict: predicted function array
+        param yt: function array
+        param yp: predicted function array
         """
 
-        len_y = len(np.ravel(y))
-
-        # calculate mean value of y_predict
-        mean_y_predict = np.sum(y_predict)/len_y
-
-        r2score = 1. - np.sum((y - y_predict)**2)/np.sum((y - mean_y_predict)**2)
+        mean_y_predict = np.sum(yp)/len(yt)
+        r2score = 1. - np.sum((yt - yp)**2)/np.sum((yt - mean_y_predict)**2)
 
         return r2score
 
@@ -46,7 +50,7 @@ class MachineLearning:
 
         len_y = len(np.ravel(y))
 
-        # the values of y_predict are not binary
+        # set values of y_predict to binary integers
         y_predict[y_predict < 0.5] = 0
         y_predict[y_predict >= 0.5] = 1
 
@@ -59,10 +63,7 @@ class MachineLearning:
         function for calculating the accuracy score (neural network)
         """
 
-        # print('y target:  ',yt[:5,:])
-        # print('y predict: ',yp[:5,:])
-
-        # inputs are one-hot encoded -> need to fix!!
+        # find maximum target and prediction arrays
         find_max_yt = np.argmax(yt,axis=1)
         find_max_yp = np.argmax(yp,axis=1)
 
@@ -70,6 +71,24 @@ class MachineLearning:
 
         return accuracy
 
+    def relu(self, theta):
+        """
+        rectified linear unit (ReLU) activation function
+        """
+
+        relu = np.maximum(0, theta)
+
+        return relu
+
+    def relu_derivative(self, theta):
+        """
+        derivative of the ReLU activation function
+        """
+
+        theta[theta <= 0] = 0
+        theta[theta > 0]  = 1
+
+        return theta
 
     def sigmoid(self, theta):
         """
@@ -80,12 +99,12 @@ class MachineLearning:
 
         return sigma
 
-    def softmax(self,z):
+    def softmax(self, theta):
         """
         calculate probabilities using the sofmax function
         """
 
-        softmax = np.exp(z)/np.sum(np.exp(z),axis=1,keepdims=True)
+        softmax = np.exp(theta)/np.sum(np.exp(theta),axis=1,keepdims=True)
 
         return softmax
 
@@ -107,7 +126,7 @@ class MachineLearning:
 
         return C
 
-    def cost_function_nn(self, yt, a, w, lamb):
+    def binary_cross_entropy(self, yt, a, w, lamb):
         """
         cost/loss function for neural network
         param yt: targets
@@ -115,11 +134,16 @@ class MachineLearning:
         param w: weights
         param lamb: regularisation hyper-parameter
         """
-        N = len(yt)
 
-        C = -np.sum(yt*np.log(a[-1]) + (1 - yt)*np.log(1 - a[-1]))/N - lamb/(2*N) * np.sum(w[-1]**2)
+        score = 0
+        for j in range(yt.shape[1]):
+            score += np.sum(yt[:,j] * np.log(1e-15 + a[:,j]) + (1 - yt[:,j])*np.log(1 - a[:,j]))
+        C = score/len(yt)
 
-        return C
+        # add regularisation to the cost
+        cost = - C - (lamb * np.sum(w[-1]**2))/len(yt)
+
+        return cost
 
 
     def gradient_descent(self, X, y, beta, eta, N):

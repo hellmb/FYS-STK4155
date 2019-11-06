@@ -9,13 +9,13 @@ from tensorflow.keras.optimizers import SGD
 
 import matplotlib.pyplot as plt
 
-class NeuralNetwork(MachineLearning):
+class NeuralNetworkLinearRegression(MachineLearning):
     """
-    neural network class
+    linear regression neural network class
     inherits from class MachineLearning
     """
 
-    def __init__(self, X, y, eta, lamb, minibatch_size, epochs, folds, nodes, benchmark=False):
+    def __init__(self, X, y, mx, my, eta, lamb, minibatch_size, epochs, folds, nodes, benchmark=False):
         """
         initialise the instance of the class
         param X: features
@@ -25,11 +25,15 @@ class NeuralNetwork(MachineLearning):
 
         # define features and targets
         self.X = X
-        self.y = y
+        self.y = y[:, np.newaxis]
 
         # keep X and y unshuffled
         self.X_unshuffled = X
         self.y_unshuffled = y
+
+        # meshgrid
+        self.mx = mx
+        self.my = my
 
         self.n_input    = X.shape[0]
         self.n_features = X.shape[1]
@@ -71,19 +75,17 @@ class NeuralNetwork(MachineLearning):
             else:
                 input_to_node = w.shape[1]
 
-            # w = np.random.randn(input_to_node,self.nodes[n]) * np.sqrt(1./input_to_node)
             w = (2/np.sqrt(input_to_node)) * np.random.random_sample((input_to_node,self.nodes[n])) - (1/np.sqrt(input_to_node))
-            # w = np.random.randn(input_to_node,self.nodes[n]) * np.sqrt(2/(input_to_node+self.nodes[n]))
             self.weights.append(np.array(w))
 
-            b = np.zeros(self.nodes[n]) #+ 0.01
+            b = np.zeros(self.nodes[n])
             self.biases.append(b[:,np.newaxis])
 
         # define output weights and biases
         w_out = np.random.rand(w.shape[1],self.y.shape[1])
         self.weights.append(np.array(w_out))
 
-        b_out = np.zeros(w_out.shape[1]) #+ 0.01
+        b_out = np.zeros(w_out.shape[1])
         self.biases.append(b_out[:,np.newaxis])
 
     def feed_forward(self, X):
@@ -95,15 +97,17 @@ class NeuralNetwork(MachineLearning):
         self.a = []
         self.a.append(np.array(X))
 
+        self.z = []
+
         i = 1
         for a, b, w in zip(self.a, self.biases, self.weights):
-            z = np.dot(a,w) + b.T
+            self.z.append(np.array(np.dot(a,w) + b.T))
 
             if i == len(self.weights):
-                # softmax activation for output layer
-                self.a.append(np.array(self.softmax(z)))
+                # linear activation
+                self.a.append(np.array(self.z[-1]))
             else:
-                self.a.append(np.array(self.sigmoid(z)))
+                self.a.append(np.array(self.relu(self.z[-1])))
 
             i += 1
 
@@ -121,7 +125,8 @@ class NeuralNetwork(MachineLearning):
 
         # back propagation for remaining layers
         for l in range(1,self.hidden_layers+1):
-            delta_l = (self.a[-l-1] * (1 - self.a[-l-1])).T * (self.weights[-l] @ delta[-1])
+            relu_derivative = self.relu_derivative(self.z[-l-1])
+            delta_l = relu_derivative.T * (self.weights[-l] @ delta[-1])
 
             # append to list of deltas
             delta.append(np.array(delta_l))
@@ -137,7 +142,7 @@ class NeuralNetwork(MachineLearning):
         k-fold cross-validation
         """
 
-        self.array_setup_kfold()
+        self.array_setup()
 
         kfolds = KFold(n_splits=self.folds)
 
@@ -175,22 +180,29 @@ class NeuralNetwork(MachineLearning):
 
                 # prediction from training data
                 self.feed_forward(self.X_train)
-                self.acc_epoch_train[j]  = self.accuracy_nn(self.y_train, self.a[-1])
-                self.cost_epoch_train[j] = self.binary_cross_entropy(self.y_train, self.a[-1], self.weights[-1], self.lamb)
+                self.acc_epoch_train[j]  = self.r2_score(self.y_train, self.a[-1])
+                self.cost_epoch_train[j] = self.mean_squared_error(self.y_train, self.a[-1], self.weights[-1], self.lamb)
 
                 # prediction from test data
                 self.feed_forward(self.X_test)
                 self.predictions.append(self.a[-1])
-                self.acc_epoch_test[j]  = self.accuracy_nn(self.y_test, self.a[-1])
-                self.cost_epoch_test[j] = self.binary_cross_entropy(self.y_test, self.a[-1], self.weights[-1], self.lamb)
+                self.acc_epoch_test[j]  = self.r2_score(self.y_test, self.a[-1])
+                self.cost_epoch_test[j] = self.mean_squared_error(self.y_test, self.a[-1], self.weights[-1], self.lamb)
 
                 if j%50 == 0:
+                    print(j)
                     print('Acc train: ',self.acc_epoch_train[j])
                     print('Acc test:  ',self.acc_epoch_test[j])
                     print('Cost train: ',self.cost_epoch_train[j])
                     print('Cost test:  ',self.cost_epoch_test[j])
                     print('Max weight: ',np.max(self.weights[0]))
                     print('Max weight: ',np.max(self.weights[1]))
+
+            # store accuracy for every k-fold
+            # self.acc_train1[:,k]  = self.acc_epoch_train
+            # self.acc_test1[:,k]   = self.acc_epoch_test
+            # self.cost_train1[:,k] = self.cost_epoch_train
+            # self.cost_test1[:,k]  = self.cost_epoch_test
 
             # store max accuracy score
             if self.acc_epoch_test[-1] > max_accuracy:
@@ -215,6 +227,9 @@ class NeuralNetwork(MachineLearning):
                 # update min_accuracy
                 min_accuracy = self.acc_epoch_test[-1]
 
+        # plotting_function.all_accuracy_kfold(self.epochs, self.acc_train1, self.acc_test1, self.folds, savefig=False)
+        # plotting_function.all_cost_kfold(self.epochs, self.cost_train1, self.cost_test1, self.folds, savefig=False)
+
     def mlp(self):
         """
         multilayer perceptron
@@ -226,9 +241,10 @@ class NeuralNetwork(MachineLearning):
         self.X = self.X[random_index,:]
         self.y = self.y[random_index,:]
 
-        # self.bootstrap()
+        # run k-fold cross-validation
         self.kfold()
 
+        # statistical analysis
         self.statistical_analysis()
 
         # validation of neural network
@@ -248,18 +264,21 @@ class NeuralNetwork(MachineLearning):
         statistical analysis on best model
         """
 
-        # plot accuracy and cost for training and test data
-        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, self.folds, savefig=False)
-        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, self.folds, savefig=False)
-
         # define best weights and biases
-        # self.weights = self.best_weights
-        # self.biases  = self.best_biases
+        self.weights = self.best_weights
+        self.biases  = self.best_biases
 
         # feed-forward with best weights and biases
-        # self.feed_forward(self.X_unshuffled)
+        self.feed_forward(self.X_unshuffled)
 
+        # plot franke function target and prediction
+        y_target  = np.reshape(self.y_unshuffled, (self.mx.shape[0], self.my.shape[0]))
+        y_predict = np.reshape(self.a[-1], (self.mx.shape[0], self.my.shape[0]))
+        plotting_function.terrain(self.mx, self.my, y_target, y_predict, savefig=False)
 
+        # plot accuracy and cost
+        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, self.folds, savefig=False)
+        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, self.folds, savefig=False)
 
 
     def keras_nn(self):
@@ -272,41 +291,28 @@ class NeuralNetwork(MachineLearning):
 
         # neural network with keras
         model = Sequential()
-        model.add(Dense(self.nodes[0], input_dim=self.n_features, activation='sigmoid'))
+        model.add(Dense(self.nodes[0], input_dim=self.n_features, activation='relu'))
 
         # add more hidden layers
         if self.hidden_layers > 1:
             for l in range(1,self.hidden_layers):
-                model.add(Dense(self.nodes[l], activation='sigmoid'))
+                model.add(Dense(self.nodes[l], activation='relu'))
 
         # add output layer
-        model.add(Dense(self.y.shape[1], activation='softmax'))
+        model.add(Dense(self.y.shape[1]))
 
         sgd = SGD(learning_rate=self.eta)
-        model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['accuracy'])
+        model.compile(loss='mean_squared_error', optimizer=sgd, metrics=['mse'])
 
         # training step
         history = model.fit(self.X_train, self.y_train, epochs=self.max_epoch, batch_size=self.minibatch_sz)
         # print(history.history.keys())
 
         # plot -> put in plotting_function
-        plt.plot(history.history['accuracy'])
+        plt.plot(history.history['???'])
         plt.show()
-        plt.plot(history.history['loss'])
+        plt.plot(history.history['mse'])
         plt.show()
-
-    def array_setup_bootstrap(self):
-        """
-        function for defining empty arrays for bootstrap
-        """
-
-        # empty arrays to store accuracy for every epoch
-        self.acc_train = np.zeros((len(self.epochs), self.n_boots))
-        self.acc_test  = np.zeros((len(self.epochs), self.n_boots))
-
-        # empty arrays to store cost/loss for every epoch
-        self.cost_train = np.zeros((len(self.epochs), self.n_boots))
-        self.cost_test  = np.zeros((len(self.epochs), self.n_boots))
 
     def temporary_arrays(self):
         """
@@ -318,7 +324,8 @@ class NeuralNetwork(MachineLearning):
         self.cost_epoch_train = np.zeros(len(self.epochs))
         self.cost_epoch_test  = np.zeros(len(self.epochs))
 
-    def array_setup_kfold(self):
+
+    def array_setup(self):
         """
         function for defining empty arrays for k-fold cross-validation
         """
@@ -327,12 +334,19 @@ class NeuralNetwork(MachineLearning):
         self.predictions = []
 
         # empty arrays to store accuracy for every epoch
-        self.acc_train = np.zeros((len(self.epochs), self.folds))
-        self.acc_test  = np.zeros((len(self.epochs), self.folds))
+        # self.acc_train1 = np.zeros((len(self.epochs), self.folds))
+        # self.acc_test1  = np.zeros((len(self.epochs), self.folds))
+        #
+        # # empty arrays to store cost/loss for every epoch
+        # self.cost_train1 = np.zeros((len(self.epochs), self.folds))
+        # self.cost_test1  = np.zeros((len(self.epochs), self.folds))
+
+        self.acc_train = np.zeros((len(self.epochs), 2))
+        self.acc_test  = np.zeros((len(self.epochs), 2))
 
         # empty arrays to store cost/loss for every epoch
-        self.cost_train = np.zeros((len(self.epochs), self.folds))
-        self.cost_test  = np.zeros((len(self.epochs), self.folds))
+        self.cost_train = np.zeros((len(self.epochs), 2))
+        self.cost_test  = np.zeros((len(self.epochs), 2))
 
 
 

@@ -2,6 +2,7 @@ Project2.pdf
 .idea/
 __pycache__/
 Figures/
+unused_code.py
 DefaultCreditCardClients_yeh_2009.pdf
 .DS_Store
 *.aux

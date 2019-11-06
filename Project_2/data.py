@@ -1,8 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, Normalizer, StandardScaler
-from sklearn.compose import ColumnTransformer
+from imageio import imread
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from warnings import filterwarnings
 
 def preprocessing(remove_data=False):
@@ -30,11 +30,11 @@ def preprocessing(remove_data=False):
         df = df.drop(df[df.MARRIAGE < 1].index)
         df = df.drop(df[df.MARRIAGE > 3].index)
 
-        df_pay = [df.PAY_0, df.PAY_2, df.PAY_3, df.PAY_4, df.PAY_5, df.PAY_6]
-        vals   = [-2, 0]
-        for s in df_pay:
-            for i in vals:
-                df = df.drop(df[s == i].index)
+        # df_pay = [df.PAY_0, df.PAY_2, df.PAY_3, df.PAY_4, df.PAY_5, df.PAY_6]
+        # vals   = [-2, 0]
+        # for s in df_pay:
+        #     for i in vals:
+        #         df = df.drop(df[s == i].index)
 
 
     # remove lines of zeros from BILL_AMT* and PAY_AMT*
@@ -56,23 +56,9 @@ def preprocessing(remove_data=False):
     features = df.loc[:, df.columns != 'default payment next month'].values
     targets  = df.loc[:, df.columns == 'default payment next month'].values
 
-    # find the unique values per feature
-    onehotencoder = OneHotEncoder(categories='auto')
-
-    # use column transformer to one-hot encode the gender feature and normalise all other features with the L2 norm
-    # preprocessor = ColumnTransformer([('onehotencoder', onehotencoder, [1,2,3]),
-    #                                   ('norm1', Normalizer(norm='l1'), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
-
-    # decide on normaliser!!
-
-    # transform X
-    # features = preprocessor.fit_transform(features, targets)
-
-    ss = StandardScaler()
+    # scale data
+    ss  = StandardScaler()
     features = ss.fit_transform(features)
-
-    # set up the design matrix X
-    features = np.c_[np.ones((features.shape[0], 1)), features]
 
     return features, targets
 
@@ -81,39 +67,25 @@ def onehotencode(targets):
     one-hot encode targets
     """
 
-    # onehotencoder = OneHotEncoder(categories='auto')
-    # preprocess   = ColumnTransformer([('onehot',onehotencoder,[0])])
-    #
-    # target_new = preprocess.fit_transform(targets)
-
     onehotencoder = OneHotEncoder()
     target_new = onehotencoder.fit_transform(targets).toarray()
 
     return target_new
 
-def normalise_cancer_data(features,targets):
+def franke_function(x, y, noise=False):
     """
-    normalise cancer data feature matrix
+    function to calculate the Franke function
+    param x, y: data points in x- and y-direction
     """
 
-    # preprocess = ColumnTransformer([('norm2',Normalizer(norm='l2'),[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])])
-    #
-    # norm_features = preprocess.fit_transform(features,targets)
+    term1 = 0.75*np.exp(-((9*x-2)**2)/4. - ((9*y-2)**2)/4.)
+    term2 = 0.75*np.exp(-((9*x+1)**2)/49. - ((9*y+1)**2)/10.)
+    term3 = 0.5*np.exp(-((9*x-7)**2)/4. - ((9*y-3)**2)/4.)
+    term4 = -0.2*np.exp(-(9*x-4)**2 - (9*y-7)**2)
 
-    ss = StandardScaler()
-    features = ss.fit_transform(features)
+    z = term1 + term2 + term3 + term4
 
-    return features
+    if noise:
+        z += 0.1*np.random.randn(x.shape[0],1)
 
-# def design_matrix():
-#     """
-#     function that returns the design matrix X
-#     """
-#
-#     # get feature matrix and targets
-#     X, y = preprocessing(remove_data=True)
-#
-#     # set up the design matrix X
-#     X = np.c_[np.ones((X.shape[0], 1)), X]
-#
-#     return X, y
+    return z

@@ -99,8 +99,8 @@ class NeuralNetwork(MachineLearning):
         for a, b, w in zip(self.a, self.biases, self.weights):
             z = np.dot(a,w) + b.T
 
-            if i == len(self.weights):
-                # softmax activation for output layer
+            if self.y.shape[1] > 2 and i == len(self.weights):
+                # softmax activation (multiclass) for output layer
                 self.a.append(np.array(self.softmax(z)))
             else:
                 self.a.append(np.array(self.sigmoid(z)))

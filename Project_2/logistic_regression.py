@@ -107,23 +107,23 @@ class LogisticRegression(MachineLearning):
             self.cost_test[:,k]  = cost_epoch_test
 
             # run sklearn SGD classifier and logistic regression for benchmarking
-            if self.benchmark:
+            # if self.benchmark:
 
                 # ignore convergence warning from sklearn
-                filterwarnings('ignore')
+                # filterwarnings('ignore')
 
                 # use sklearn stochastic gradient descent
-                clf_sgd = SGDClassifier(loss='log',penalty='none',learning_rate='constant',eta0=0.001,
-                                    fit_intercept=False,max_iter=self.max_epoch,shuffle=True)
-                                    #,verbose=1)
-
-                clf_sgd.fit(self.X_train,self.y_train.ravel())
-
-                self.sgd_train[k] = clf_sgd.score(self.X_train, self.y_train)
-                self.sgd_test[k]  = clf_sgd.score(self.X_test, self.y_test)
-
-                self.dc_train[k]  = np.max(self.acc_train)
-                self.dc_test[k]   = np.max(self.acc_test)
+                # clf_sgd = SGDClassifier(loss='log',penalty='none',learning_rate='constant',eta0=0.001,
+                #                     fit_intercept=False,max_iter=self.max_epoch,shuffle=True)
+                #                     #,verbose=1)
+                #
+                # clf_sgd.fit(self.X_train,self.y_train.ravel())
+                #
+                # self.sgd_train[k] = clf_sgd.score(self.X_train, self.y_train)
+                # self.sgd_test[k]  = clf_sgd.score(self.X_test, self.y_test)
+                #
+                # self.dc_train[k]  = np.max(self.acc_train)
+                # self.dc_test[k]   = np.max(self.acc_test)
 
     def logistic_regression(self):
         """
@@ -151,6 +151,23 @@ class LogisticRegression(MachineLearning):
 
         # plot accuracy for benchmarking
         if self.benchmark:
+
+            # ignore convergence warning from sklearn
+            filterwarnings('ignore')
+
+            # use sklearn stochastic gradient descent
+            clf_sgd = SGDClassifier(loss='log',penalty='none',learning_rate='constant',eta0=0.001,
+                                fit_intercept=False,max_iter=self.max_epoch,shuffle=True)
+                                #,verbose=1)
+
+            clf_sgd.fit(self.X_train,self.y_train.ravel())
+
+            self.sgd_train[k] = clf_sgd.score(self.X_train, self.y_train)
+            self.sgd_test[k]  = clf_sgd.score(self.X_test, self.y_test)
+
+            self.dc_train[k]  = np.max(self.acc_train)
+            self.dc_test[k]   = np.max(self.acc_test)
+
             plotting_function.plot_benchmark(self.sgd_train,self.sgd_test,self.dc_train,self.dc_test,savefig=False)
 
 

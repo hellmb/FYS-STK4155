@@ -11,3 +11,5 @@ DefaultCreditCardClients_yeh_2009.pdf
 *.out
 *.tex
 *.toc
+*.bbl
+*.blg

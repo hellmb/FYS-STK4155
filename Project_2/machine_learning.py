@@ -20,14 +20,9 @@ class MachineLearning:
         param lamb: regularisation hyper-parameter
         """
 
-
-        # score = 0
-        # for j in range(yt.shape[1]):
-        #     score += np.sum((yp[:,j] - yt[:,j])**2)
-        #
-        # C = score/len(yt)
-
-        mse = np.sum((yt - yp)**2)/len(yt) + (lamb * np.sum(w[-1]**2))/len(yt)
+        # add regularisation to the cost
+        # frobenius_norm = np.linalg.norm(w[-1])
+        mse = np.sum((yt - yp)**2)/len(yt) + lamb/len(yt) * np.sum(np.square(w[-1]))
 
         return mse
 
@@ -108,7 +103,7 @@ class MachineLearning:
 
         return softmax
 
-    def cost_function(self, X, y, beta, lamb):
+    def cost_function(self, X, y, beta):
         """
         cost/loss function
         param X: design matrix (features), matrix
@@ -122,7 +117,7 @@ class MachineLearning:
 
         p = self.sigmoid(y_predict)
 
-        C = -np.sum(y*np.log(p) + (1 - y)*np.log(1 - p))/N - lamb/(2*N) * np.sum(beta[-1]**2)
+        C = -np.sum(y*np.log(p) + (1 - y)*np.log(1+1E-15 - p))/N
 
         return C
 
@@ -141,7 +136,8 @@ class MachineLearning:
         C = score/len(yt)
 
         # add regularisation to the cost
-        cost = - C - (lamb * np.sum(w[-1]**2))/len(yt)
+        frobenius_norm = np.linalg.norm(w[-1])
+        cost = - C - (lamb * frobenius_norm)/len(yt)
 
         return cost
 

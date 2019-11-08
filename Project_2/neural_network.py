@@ -2,7 +2,8 @@ import sys
 import plotting_function
 import numpy as np
 from machine_learning import MachineLearning
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import KFold
+from sklearn.metrics import accuracy_score
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD
@@ -128,8 +129,8 @@ class NeuralNetwork(MachineLearning):
 
         # update weights and biases
         for l in range(1,self.hidden_layers+2):
-            regularisation = self.lamb * self.weights[-l]/self.weights[-l].shape[1]
-            self.weights[-l] = self.weights[-l] - self.eta*((self.a[-l-1].T @ delta[l-1].T)/self.minibatch_sz - regularisation)
+            regularisation = self.lamb * self.weights[-l]
+            self.weights[-l] = self.weights[-l] - self.eta*((self.a[-l-1].T @ delta[l-1].T) + regularisation)/self.minibatch_sz
             self.biases[-l]  = self.biases[-l] - (self.eta*np.sum(delta[l-1],axis=1,keepdims=True))/self.minibatch_sz
 
     def kfold(self):
@@ -137,7 +138,7 @@ class NeuralNetwork(MachineLearning):
         k-fold cross-validation
         """
 
-        self.array_setup_kfold()
+        self.array_setup()
 
         kfolds = KFold(n_splits=self.folds)
 
@@ -203,7 +204,7 @@ class NeuralNetwork(MachineLearning):
                 self.cost_test[:,0]  = self.cost_epoch_test
 
                 # update max_accuracy
-                max_accuracy = np.max(self.acc_epoch_test)
+                max_accuracy = self.acc_epoch_test[-1]
 
             # store min accuracy score
             if self.acc_epoch_test[-1] < min_accuracy:
@@ -214,6 +215,18 @@ class NeuralNetwork(MachineLearning):
 
                 # update min_accuracy
                 min_accuracy = self.acc_epoch_test[-1]
+
+            if self.benchmark:
+
+                # run keras neural network
+                self.keras_nn()
+
+                # store last accuracy score for each fold
+                self.last_acc_train[k] = self.acc_epoch_train[-1]
+                self.last_acc_test[k]  = self.acc_epoch_test[-1]
+                self.keras_acc_train[k] = self.accuracy_nn(self.y_train, self.keras_predict_train)
+                self.keras_acc_test[k]  = self.accuracy_nn(self.y_test, self.keras_predict_test)
+
 
     def mlp(self):
         """
@@ -231,44 +244,10 @@ class NeuralNetwork(MachineLearning):
 
         self.statistical_analysis()
 
-        # validation of neural network
-        if self.benchmark:
-            # also test for small sample
-            # set X = X[0:2,:] and and run code
-            # testing purpose --> include in benchmarks for validating the neural network
-            # set X = X[0:500,:]
-            # random_index = np.arange(self.y_train.shape[0])
-            # np.random.shuffle(random_index)
-            # self.y_train = self.y_train[random_index,:]
-
-            self.keras_nn()
-
-    def statistical_analysis(self):
-        """
-        statistical analysis on best model
-        """
-
-        # plot accuracy and cost for training and test data
-        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, self.folds, savefig=False)
-        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, self.folds, savefig=False)
-
-        # define best weights and biases
-        # self.weights = self.best_weights
-        # self.biases  = self.best_biases
-
-        # feed-forward with best weights and biases
-        # self.feed_forward(self.X_unshuffled)
-
-
-
-
     def keras_nn(self):
         """
         keras neural network
         """
-
-        # split into training and test data
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2)
 
         # neural network with keras
         model = Sequential()
@@ -286,27 +265,56 @@ class NeuralNetwork(MachineLearning):
         model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
         # training step
-        history = model.fit(self.X_train, self.y_train, epochs=self.max_epoch, batch_size=self.minibatch_sz)
-        # print(history.history.keys())
+        model.fit(self.X_train, self.y_train, epochs=self.max_epoch, batch_size=self.minibatch_sz)
 
-        # plot -> put in plotting_function
-        plt.plot(history.history['accuracy'])
-        plt.show()
-        plt.plot(history.history['loss'])
-        plt.show()
+        # keras predictions
+        self.keras_predict_train = model.predict(self.X_train)
+        self.keras_predict_test  = model.predict(self.X_test)
 
-    def array_setup_bootstrap(self):
+    def validate_network(self):
         """
-        function for defining empty arrays for bootstrap
+        neural network validation function
         """
 
-        # empty arrays to store accuracy for every epoch
-        self.acc_train = np.zeros((len(self.epochs), self.n_boots))
-        self.acc_test  = np.zeros((len(self.epochs), self.n_boots))
+        # define small input feature
+        random_index = np.arange(self.X.shape[0])
+        np.random.shuffle(random_index)
+        self.X = self.X[random_index,:]
+        self.y = self.y[random_index,:]
+        print(self.y)
+        self.X = self.X[20:22,:]
+        self.y = self.y[20:22,:]
 
-        # empty arrays to store cost/loss for every epoch
-        self.cost_train = np.zeros((len(self.epochs), self.n_boots))
-        self.cost_test  = np.zeros((len(self.epochs), self.n_boots))
+        self.kfold()
+
+        plotting_function.golden_test1(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
+        plotting_function.golden_test1(self.epochs, self.acc_train[:,1], self.acc_test[:,1], savefig=True)
+
+        # define larger sample
+        self.X = self.X_unshuffled[0:500,:]
+        self.y = self.y_unshuffled[0:500,:]
+
+        # shuffle labels randomly
+        random_index = np.arange(self.X.shape[0])
+        np.random.shuffle(random_index)
+        self.y = self.y[random_index,:]
+
+        self.kfold()
+
+        plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
+
+    def statistical_analysis(self):
+        """
+        statistical analysis of models
+        """
+
+        # validation of neural network
+        if not self.benchmark:
+            # plot accuracy and cost for training and test data
+            plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=True)
+            plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=True)
+        else:
+            plotting_function.accuracy_keras(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=True)
 
     def temporary_arrays(self):
         """
@@ -318,7 +326,7 @@ class NeuralNetwork(MachineLearning):
         self.cost_epoch_train = np.zeros(len(self.epochs))
         self.cost_epoch_test  = np.zeros(len(self.epochs))
 
-    def array_setup_kfold(self):
+    def array_setup(self):
         """
         function for defining empty arrays for k-fold cross-validation
         """
@@ -327,12 +335,23 @@ class NeuralNetwork(MachineLearning):
         self.predictions = []
 
         # empty arrays to store accuracy for every epoch
-        self.acc_train = np.zeros((len(self.epochs), self.folds))
-        self.acc_test  = np.zeros((len(self.epochs), self.folds))
+        self.acc_train = np.zeros((len(self.epochs), 2))
+        self.acc_test  = np.zeros((len(self.epochs), 2))
 
         # empty arrays to store cost/loss for every epoch
-        self.cost_train = np.zeros((len(self.epochs), self.folds))
-        self.cost_test  = np.zeros((len(self.epochs), self.folds))
+        self.cost_train = np.zeros((len(self.epochs), 2))
+        self.cost_test  = np.zeros((len(self.epochs), 2))
+
+        # store last accuracy score for each k-fold
+        self.last_acc_train = np.zeros(self.folds)
+        self.last_acc_test  = np.zeros(self.folds)
+
+        # empty arrays to store accuracy for every epoch
+        self.keras_acc_train = np.zeros(self.folds)
+        self.keras_acc_test  = np.zeros(self.folds)
+
+
+
 
 
 

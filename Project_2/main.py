@@ -1,10 +1,10 @@
 import sys
 import data
 import numpy as np
+import plotting_function
 from logistic_regression import LogisticRegression
 from neural_network import NeuralNetwork
 from neural_network_linreg import NeuralNetworkLinearRegression
-from sklearn.datasets import load_breast_cancer
 
 
 if __name__ == '__main__':
@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # initialise features and targets using credit card data
         X, y = data.preprocessing(remove_data=True)
 
-        lr = LogisticRegression(X, y, eta=0.01, lamb=0, minibatch_size=100, epochs=100, n_boots=1, benchmark=False)
+        lr = LogisticRegression(X, y, eta=0.001, minibatch_size=100, epochs=100, folds=10, benchmark=False)
         lr.logistic_regression()
 
     elif arg == 'nn':
@@ -35,8 +35,21 @@ if __name__ == '__main__':
         num_targets = np.sum(y,axis=0)
         print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
 
-        nn = NeuralNetwork(X, y, eta=0.01, lamb=0, minibatch_size=100, epochs=1000, folds=10, nodes=[50], benchmark=False)
-        nn.mlp()
+        # nn = NeuralNetwork(X, y, eta=0.01, lamb=1, minibatch_size=100, epochs=150, folds=10, nodes=[50], benchmark=False)
+        # nn.mlp()
+
+        explore_regularisation = True
+        if explore_regularisation:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_lambdas = [1E-4, 1E-3, 1E-2, 1E-1, 1]
+            for lamb in list_of_lambdas:
+                nn = NeuralNetwork(X, y, eta=0.01, lamb=lamb, minibatch_size=100, epochs=50, folds=10, nodes=[50], benchmark=False)
+                nn.mlp()
+                store_acc_train.append(nn.acc_epoch_train)
+                store_acc_test.append(nn.acc_epoch_test)
+            plotting_function.test_regularisation(nn.epochs, store_acc_train, store_acc_test, list_of_lambdas, savefig=True)
+
 
     elif arg == 'linreg':
 
@@ -59,44 +72,20 @@ if __name__ == '__main__':
         # create targets by ravelling y
         y = np.ravel(y)
 
-        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0, minibatch_size=10, epochs=500, folds=10, nodes=[10,8,3], benchmark=False)
-        nn.mlp()
+        # nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0, minibatch_size=100, epochs=300, folds=10, nodes=[8,4,3], benchmark=True)
+        # nn.mlp()
 
-
-    elif arg == 'bc_log':
-
-        data_bc = load_breast_cancer()
-
-        # split data set into features and targets
-        X = data_bc.data
-        y = data_bc.target
-        y = y[:,np.newaxis]
-
-        # normalise features
-        X = data.normalise_cancer_data(X,y)
-
-        lr = LogisticRegression(X, y, n_boots=2, benchmark=True)
-        lr.logistic_regression()
-
-    elif arg == 'bc_nn':
-
-        data_bc = load_breast_cancer()
-
-        # split data set into features and targets
-        X = data_bc.data
-        y = data_bc.target
-
-        # normalise features
-        X = data.normalise_cancer_data(X,y)
-
-        # one-hot encode targets
-        y = data.onehotencode(y[:,np.newaxis])
-
-        num_targets = np.sum(y,axis=0)
-        print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
-
-        nn = NeuralNetwork(X, y, eta=0.001, lamb=0, minibatch_size=100, epochs=500, n_boots=1, folds=10, nodes=[10,8], benchmark=False)
-        nn.mlp()
+        explore_regularisation = False
+        if explore_regularisation:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_lambdas = [1E-4, 1E-3, 1E-2, 1E-1, 1]
+            for lamb in list_of_lambdas:
+                nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=lamb, minibatch_size=100, epochs=300, folds=10, nodes=[8,4,3], benchmark=False)
+                nn.mlp()
+                store_acc_train.append(nn.acc_epoch_train)
+                store_acc_test.append(nn.acc_epoch_test)
+            plotting_function.test_regularisation(nn.epochs, store_acc_train, store_acc_test, list_of_lambdas, savefig=True)
 
     else:
         print('Invalid input argument. Please specify "log" or "nn".')

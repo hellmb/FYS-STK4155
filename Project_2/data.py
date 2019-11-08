@@ -1,8 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
+import plotting_function
 from imageio import imread
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
 from warnings import filterwarnings
 
 def preprocessing(remove_data=False):
@@ -56,9 +58,17 @@ def preprocessing(remove_data=False):
     features = df.loc[:, df.columns != 'default payment next month'].values
     targets  = df.loc[:, df.columns == 'default payment next month'].values
 
+    # use column transformer to one-hot encode categorical features and scale the other features
+    preprocessor = ColumnTransformer([('ohe', OneHotEncoder(categories='auto'), [1,2,3]),
+                                      ('ss', StandardScaler(), [0,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22])])
+
+
+    # transform X
+    features = preprocessor.fit_transform(features, targets)
+
     # scale data
-    ss  = StandardScaler()
-    features = ss.fit_transform(features)
+    # ss  = StandardScaler()
+    # features2 = ss.fit_transform(features2)
 
     return features, targets
 
@@ -89,3 +99,22 @@ def franke_function(x, y, noise=False):
         z += 0.1*np.random.randn(x.shape[0],1)
 
     return z
+
+def visualise_data():
+    """
+    visualise payment status
+    """
+
+    # ignore warnings
+    filterwarnings('ignore')
+
+    # get path to data file
+    cwd = os.getcwd()
+    file = cwd + '/default of credit card clients.xls'
+
+    # read excel file and store NA values in dictionary
+    na_values = {}
+    df = pd.read_excel(file, header=1, index_col=0, na_values=na_values)
+
+    # plot payment status histograms
+    plotting_function.plot_3d_hist(df)

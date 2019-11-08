@@ -111,7 +111,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
 
             i += 1
 
-
     def backpropagation(self, y):
         """
         function performing back-propagation
@@ -121,7 +120,8 @@ class NeuralNetworkLinearRegression(MachineLearning):
         delta = []
 
         # compute output error
-        delta.append(np.array(self.a[-1] - y).T)
+        relu_output_derivative = self.relu_derivative(self.z[-1])
+        delta.append(np.array(relu_output_derivative * (self.a[-1] - y)).T)
 
         # back propagation for remaining layers
         for l in range(1,self.hidden_layers+1):
@@ -133,8 +133,8 @@ class NeuralNetworkLinearRegression(MachineLearning):
 
         # update weights and biases
         for l in range(1,self.hidden_layers+2):
-            regularisation = self.lamb * self.weights[-l]/self.weights[-l].shape[1]
-            self.weights[-l] = self.weights[-l] - self.eta*((self.a[-l-1].T @ delta[l-1].T)/self.minibatch_sz - regularisation)
+            regularisation = self.lamb * self.weights[-l]
+            self.weights[-l] = self.weights[-l] - self.eta*((self.a[-l-1].T @ delta[l-1].T) + regularisation)/self.minibatch_sz
             self.biases[-l]  = self.biases[-l] - (self.eta*np.sum(delta[l-1],axis=1,keepdims=True))/self.minibatch_sz
 
     def kfold(self):
@@ -198,12 +198,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
                     print('Max weight: ',np.max(self.weights[0]))
                     print('Max weight: ',np.max(self.weights[1]))
 
-            # store accuracy for every k-fold
-            # self.acc_train1[:,k]  = self.acc_epoch_train
-            # self.acc_test1[:,k]   = self.acc_epoch_test
-            # self.cost_train1[:,k] = self.cost_epoch_train
-            # self.cost_test1[:,k]  = self.cost_epoch_test
-
             # store max accuracy score
             if self.acc_epoch_test[-1] > max_accuracy:
                 self.best_weights = self.weights
@@ -215,7 +209,7 @@ class NeuralNetworkLinearRegression(MachineLearning):
                 self.cost_test[:,0]  = self.cost_epoch_test
 
                 # update max_accuracy
-                max_accuracy = np.max(self.acc_epoch_test)
+                max_accuracy = self.acc_epoch_test[-1]
 
             # store min accuracy score
             if self.acc_epoch_test[-1] < min_accuracy:
@@ -227,8 +221,15 @@ class NeuralNetworkLinearRegression(MachineLearning):
                 # update min_accuracy
                 min_accuracy = self.acc_epoch_test[-1]
 
-        # plotting_function.all_accuracy_kfold(self.epochs, self.acc_train1, self.acc_test1, self.folds, savefig=False)
-        # plotting_function.all_cost_kfold(self.epochs, self.cost_train1, self.cost_test1, self.folds, savefig=False)
+            if self.benchmark:
+                # run keras neural network
+                self.keras_nn()
+
+                # store last accuracy score for each fold
+                self.last_acc_train[k] = self.acc_epoch_train[-1]
+                self.last_acc_test[k]  = self.acc_epoch_test[-1]
+                self.keras_acc_train[k] = self.r2_score(self.y_train, self.keras_predict_train)
+                self.keras_acc_test[k]  = self.r2_score(self.y_test, self.keras_predict_test)
 
     def mlp(self):
         """
@@ -247,18 +248,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
         # statistical analysis
         self.statistical_analysis()
 
-        # validation of neural network
-        if self.benchmark:
-            # also test for small sample
-            # set X = X[0:2,:] and and run code
-            # testing purpose --> include in benchmarks for validating the neural network
-            # set X = X[0:500,:]
-            # random_index = np.arange(self.y_train.shape[0])
-            # np.random.shuffle(random_index)
-            # self.y_train = self.y_train[random_index,:]
-
-            self.keras_nn()
-
     def statistical_analysis(self):
         """
         statistical analysis on best model
@@ -274,12 +263,14 @@ class NeuralNetworkLinearRegression(MachineLearning):
         # plot franke function target and prediction
         y_target  = np.reshape(self.y_unshuffled, (self.mx.shape[0], self.my.shape[0]))
         y_predict = np.reshape(self.a[-1], (self.mx.shape[0], self.my.shape[0]))
-        plotting_function.terrain(self.mx, self.my, y_target, y_predict, savefig=False)
+        # plotting_function.plot_surface(self.mx, self.my, y_target, y_predict, savefig=True)
 
         # plot accuracy and cost
-        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, self.folds, savefig=False)
-        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, self.folds, savefig=False)
+        # plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=True)
+        # plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=True)
 
+        if self.benchmark:
+            plotting_function.accuracy_scikit(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=True)
 
     def keras_nn(self):
         """
@@ -305,14 +296,11 @@ class NeuralNetworkLinearRegression(MachineLearning):
         model.compile(loss='mean_squared_error', optimizer=sgd, metrics=['mse'])
 
         # training step
-        history = model.fit(self.X_train, self.y_train, epochs=self.max_epoch, batch_size=self.minibatch_sz)
-        # print(history.history.keys())
+        model.fit(self.X_train, self.y_train, epochs=self.max_epoch, batch_size=self.minibatch_sz)
 
-        # plot -> put in plotting_function
-        plt.plot(history.history['???'])
-        plt.show()
-        plt.plot(history.history['mse'])
-        plt.show()
+        # keras predictions
+        self.keras_predict_train = model.predict(self.X_train)
+        self.keras_predict_test  = model.predict(self.X_test)
 
     def temporary_arrays(self):
         """
@@ -324,7 +312,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
         self.cost_epoch_train = np.zeros(len(self.epochs))
         self.cost_epoch_test  = np.zeros(len(self.epochs))
 
-
     def array_setup(self):
         """
         function for defining empty arrays for k-fold cross-validation
@@ -333,14 +320,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
         # store predictions for each k-fold
         self.predictions = []
 
-        # empty arrays to store accuracy for every epoch
-        # self.acc_train1 = np.zeros((len(self.epochs), self.folds))
-        # self.acc_test1  = np.zeros((len(self.epochs), self.folds))
-        #
-        # # empty arrays to store cost/loss for every epoch
-        # self.cost_train1 = np.zeros((len(self.epochs), self.folds))
-        # self.cost_test1  = np.zeros((len(self.epochs), self.folds))
-
         self.acc_train = np.zeros((len(self.epochs), 2))
         self.acc_test  = np.zeros((len(self.epochs), 2))
 
@@ -348,8 +327,12 @@ class NeuralNetworkLinearRegression(MachineLearning):
         self.cost_train = np.zeros((len(self.epochs), 2))
         self.cost_test  = np.zeros((len(self.epochs), 2))
 
+        # store last accuracy score for each k-fold
+        self.last_acc_train = np.zeros(self.folds)
+        self.last_acc_test  = np.zeros(self.folds)
 
-
-
+        # empty arrays to store accuracy for every epoch
+        self.keras_acc_train = np.zeros(self.folds)
+        self.keras_acc_test  = np.zeros(self.folds)
 
 # end of code

@@ -154,7 +154,7 @@ def plot_surface(x, y, zt, zp, savefig=False):
     """
 
     # plot figure
-    fig = plt.figure(figsize=(15,6))
+    fig = plt.figure(figsize=(18,8))
 
     # define costum colormap
     cmap = define_colormap.DefineColormap('arctic')

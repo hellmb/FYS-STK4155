@@ -121,7 +121,7 @@ if __name__ == '__main__':
         # create targets by ravelling y
         y = np.ravel(y)
 
-        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0.001, minibatch_size=100, epochs=500, folds=10, nodes=[8,4,3], benchmark=False)
+        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0.001, minibatch_size=150, epochs=200, folds=10, nodes=[8,4,3], benchmark=False)
         nn.mlp()
 
         explore_regularisation = False
@@ -136,5 +136,29 @@ if __name__ == '__main__':
                 store_acc_test.append(nn.acc_epoch_test)
             plotting_function.test_regularisation(nn.epochs, store_acc_train, store_acc_test, list_of_lambdas, savefig=True)
 
+        explore_learning_rate = False
+        if explore_learning_rate:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_etas = [1E-4, 1E-3, 1E-2, 1E-1, 1]
+            for eta in list_of_etas:
+                nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=eta, lamb=0, minibatch_size=100, epochs=300, folds=10, nodes=[8,4,3], benchmark=False)
+                nn.mlp()
+                store_acc_train.append(nn.acc_epoch_train)
+                store_acc_test.append(nn.acc_epoch_test)
+            plotting_function.test_eta(nn.epochs, store_acc_train, store_acc_test, list_of_etas, savefig=True)
+
+        explore_regularisation = False
+        if explore_regularisation:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_minibatches = [10, 30, 50, 100, 150]
+            for minibatch in list_of_minibatches:
+                nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0, minibatch_size=minibatch, epochs=300, folds=10, nodes=[8,4,3], benchmark=False)
+                nn.mlp()
+                store_acc_train.append(nn.acc_epoch_train)
+                store_acc_test.append(nn.acc_epoch_test)
+            plotting_function.test_minibatches(nn.epochs, store_acc_train, store_acc_test, list_of_minibatches, savefig=True)
+
     else:
-        print('Invalid input argument. Please specify "log" or "nn".')
+        print('Invalid input argument. Please specify "log", "nn" or "linreg".')

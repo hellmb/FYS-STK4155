@@ -203,7 +203,7 @@ def plot_surface(x, y, zt, zp, savefig=False):
     plt.show()
 
     if savefig:
-        fig.savefig('Figures/predicted_terrain.png', format='png', dpi=200, transparent=False)
+        fig.savefig('Figures/predicted_surface.png', format='png', dpi=200, transparent=False)
 
 def golden_test1(epoch, acc_train, acc_test, savefig=False):
     """
@@ -341,5 +341,47 @@ def test_regularisation(epoch, acc_train, acc_test, lambdas, savefig=False):
 
     if savefig:
         fig.savefig('Figures/lambdas_accuracy.png', dpi=200)
+
+def test_eta(epoch, acc_train, acc_test, etas, savefig=True):
+    """
+    plot accuracy for train and test data for different learning rates
+    """
+
+    color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
+    color_test  = ['#EC407A','#7986CB','#42A5F5','#80CBC4','#9CCC65','#FFD54F','#FFAB91']
+
+    fig = plt.figure(figsize=(10,6))
+    for i in range(len(etas)):
+        plt.plot(epoch, acc_train[i][:]*100, color=color_train[i], linestyle='--', label=r'Train, $\eta = %s$' % str(etas[i]))
+        plt.plot(epoch, acc_test[i][:]*100, color=color_test[i], label=r'Test, $\eta = %s$' % str(etas[i]))
+    plt.title(r'Accuracy for different values of the learning rate $\eta$', fontsize=20)
+    plt.xlabel('Epoch', fontsize=15)
+    plt.ylabel(r'$\epsilon$ [%]', fontsize=15)
+    plt.legend(loc='lower right', fontsize=15)
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/etas_accuracy.png', dpi=200)
+
+def test_minibatches(epoch, acc_train, acc_test, minibatches, savefig=True):
+    """
+    plot accuracy for train and test data for different learning rates
+    """
+
+    color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
+    color_test  = ['#EC407A','#7986CB','#42A5F5','#80CBC4','#9CCC65','#FFD54F','#FFAB91']
+
+    fig = plt.figure(figsize=(10,6))
+    for i in range(len(minibatches)):
+        plt.plot(epoch, acc_train[i][:]*100, color=color_train[i], linestyle='--', label=r'Train, mb$_{size} = %s$' % str(minibatches[i]))
+        plt.plot(epoch, acc_test[i][:]*100, color=color_test[i], label=r'Test, mb$_{size} = %s$' % str(minibatches[i]))
+    plt.title(r'Accuracy for different mini-batch sizes', fontsize=20)
+    plt.xlabel('Epoch', fontsize=15)
+    plt.ylabel(r'$\epsilon$ [%]', fontsize=15)
+    plt.legend(loc='lower right', fontsize=15)
+    plt.show()
+
+    if savefig:
+        fig.savefig('Figures/minibatch_accuracy.png', dpi=200)
 
 # end of code

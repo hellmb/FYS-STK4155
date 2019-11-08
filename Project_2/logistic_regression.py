@@ -70,51 +70,6 @@ class LogisticRegression(MachineLearning):
         self.cost_epoch_train = np.zeros(len(self.epochs))
         self.cost_epoch_test  = np.zeros(len(self.epochs))
 
-    def bootstrap(self):
-        """
-        bootstrap algorithm
-        """
-
-        for k in range(self.n_boots):
-
-            print('Bootstrap number ', k)
-
-            # define random beta
-            beta = np.random.rand(self.X.shape[1], 1)
-
-            # empty array to store accuracy and cost for epochs
-            acc_epoch_train  = np.zeros(len(self.epochs))
-            acc_epoch_test   = np.zeros(len(self.epochs))
-            cost_epoch_train = np.zeros(len(self.epochs))
-            cost_epoch_test  = np.zeros(len(self.epochs))
-
-            for j in range(len(self.epochs)):
-                for i in range(0,self.n,self.minibatch_sz):
-                    beta = self.gradient_descent(self.X_train[i:i+self.minibatch_sz,:], self.y_train[i:i+self.minibatch_sz,:], beta, self.eta, self.minibatch_sz)
-
-                ypred_train = np.dot(self.X_train,beta)
-                ypred_test  = np.dot(self.X_test,beta)
-
-                # calculate accuracy and cost for each epoch
-                acc_epoch_train[j] = self.accuracy_log(self.y_train, ypred_train)
-                acc_epoch_test[j]  = self.accuracy_log(self.y_test, ypred_test)
-                cost_epoch_train[j] = self.cost_function(self.X_train, self.y_train, beta, self.lamb)
-                cost_epoch_test[j]  = self.cost_function(self.X_test, self.y_test, beta, self.lamb)
-
-                # create random indices for every bootstrap
-                random_index = np.arange(self.X_train.shape[0])
-                np.random.shuffle(random_index)
-
-                # resample X_train and y_train
-                self.X_train = self.X_train[random_index,:]
-                self.y_train = self.y_train[random_index,:]
-
-            # store accuracy for every bootstrap
-            self.acc_train[:,k]  = acc_epoch_train
-            self.acc_test[:,k]   = acc_epoch_test
-            self.cost_train[:,k] = cost_epoch_train
-            self.cost_test[:,k]  = cost_epoch_test
-
     def kfold(self):
         """
         k-fold cross-validation
@@ -235,7 +190,7 @@ class LogisticRegression(MachineLearning):
             print(self.sgd_test.shape)
             print(self.dc_train.shape)
             print(self.dc_test.shape)
-            plotting_function.benchmark_sgd(self.sgd_train, self.sgd_test, self.dc_train, self.dc_test, self.folds, savefig=True)
+            plotting_function.benchmark_sgd(self.sgd_train, self.sgd_test, self.dc_train, self.dc_test, self.folds, savefig=False)
 
 
 # end of code

@@ -21,8 +21,33 @@ if __name__ == '__main__':
         # initialise features and targets using credit card data
         X, y = data.preprocessing(remove_data=True)
 
-        lr = LogisticRegression(X, y, eta=0.001, minibatch_size=100, epochs=100, folds=10, benchmark=False)
+        lr = LogisticRegression(X, y, eta=0.001, minibatch_size=150, epochs=60, folds=10, benchmark=False)
         lr.logistic_regression()
+
+        explore_learning_rate = False
+        if explore_learning_rate:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_etas = [1E-4, 1E-3, 1E-2, 1E-1, 1]
+            for eta in list_of_etas:
+                lr = LogisticRegression(X, y, eta=eta, minibatch_size=100, epochs=100, folds=10, benchmark=False)
+                lr.logistic_regression()
+                store_acc_train.append(lr.acc_epoch_train)
+                store_acc_test.append(lr.acc_epoch_test)
+            plotting_function.test_eta(lr.epochs, store_acc_train, store_acc_test, list_of_etas, savefig=True)
+
+        explore_minibatches = False
+        if explore_minibatches:
+            store_acc_train = []
+            store_acc_test  = []
+            list_of_minibatches = [10, 30, 50, 100, 150]
+            for minibatch in list_of_minibatches:
+                lr = LogisticRegression(X, y, eta=0.001, minibatch_size=minibatch, epochs=100, folds=10, benchmark=False)
+                lr.logistic_regression()
+                store_acc_train.append(lr.acc_epoch_train)
+                store_acc_test.append(lr.acc_epoch_test)
+            plotting_function.test_minibatches(lr.epochs, store_acc_train, store_acc_test, list_of_minibatches, savefig=True)
+
 
     elif arg == 'nn':
 
@@ -35,10 +60,10 @@ if __name__ == '__main__':
         num_targets = np.sum(y,axis=0)
         print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
 
-        # nn = NeuralNetwork(X, y, eta=0.01, lamb=1, minibatch_size=100, epochs=150, folds=10, nodes=[50], benchmark=False)
-        # nn.mlp()
+        nn = NeuralNetwork(X, y, eta=0.01, lamb=0.0001, minibatch_size=100, epochs=150, folds=10, nodes=[50], benchmark=False)
+        nn.mlp()
 
-        explore_regularisation = True
+        explore_regularisation = False
         if explore_regularisation:
             store_acc_train = []
             store_acc_test  = []
@@ -72,8 +97,8 @@ if __name__ == '__main__':
         # create targets by ravelling y
         y = np.ravel(y)
 
-        # nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0, minibatch_size=100, epochs=300, folds=10, nodes=[8,4,3], benchmark=True)
-        # nn.mlp()
+        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0.001, minibatch_size=100, epochs=500, folds=10, nodes=[8,4,3], benchmark=False)
+        nn.mlp()
 
         explore_regularisation = False
         if explore_regularisation:

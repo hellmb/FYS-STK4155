@@ -288,7 +288,7 @@ class NeuralNetwork(MachineLearning):
         self.kfold()
 
         plotting_function.golden_test1(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
-        plotting_function.golden_test1(self.epochs, self.acc_train[:,1], self.acc_test[:,1], savefig=True)
+        # plotting_function.golden_test1(self.epochs, self.acc_train[:,1], self.acc_test[:,1], savefig=True)
 
         # define larger sample
         self.X = self.X_unshuffled[0:500,:]
@@ -299,9 +299,9 @@ class NeuralNetwork(MachineLearning):
         np.random.shuffle(random_index)
         self.y = self.y[random_index,:]
 
-        self.kfold()
+        # self.kfold()
 
-        plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
+        # plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
 
     def statistical_analysis(self):
         """

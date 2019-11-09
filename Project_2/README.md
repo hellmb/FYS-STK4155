@@ -6,4 +6,4 @@ This project investigates both classification and regression problems by develop
 The models are run through main.py, which takes an input argument. Supported arguments are 'log' for running the logisitic regression model, 'nn' for running the classification neural network and 'linreg' for running the linear regression neural network.
 
 ### Additional note:
-In order to save the figures, the user needs to have an additional folder "Figures/" in the run directory.
+In order to save the figures, the user needs to have an additional folder "Figures/" in the run directory. 

@@ -185,7 +185,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
 
                 # prediction from test data
                 self.feed_forward(self.X_test)
-                self.predictions.append(self.a[-1])
                 self.acc_epoch_test[j]  = self.r2_score(self.y_test, self.a[-1])
                 self.cost_epoch_test[j] = self.mean_squared_error(self.y_test, self.a[-1], self.weights[-1], self.lamb)
 
@@ -263,14 +262,14 @@ class NeuralNetworkLinearRegression(MachineLearning):
         # plot franke function target and prediction
         y_target  = np.reshape(self.y_unshuffled, (self.mx.shape[0], self.my.shape[0]))
         y_predict = np.reshape(self.a[-1], (self.mx.shape[0], self.my.shape[0]))
-        plotting_function.plot_surface(self.mx, self.my, y_target, y_predict, savefig=True)
+        plotting_function.plot_surface(self.mx, self.my, y_target, y_predict, savefig=False)
 
         # plot accuracy and cost
-        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=True)
-        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=True)
+        plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=False)
+        plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=False)
 
         if self.benchmark:
-            plotting_function.accuracy_scikit(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=True)
+            plotting_function.accuracy_keras(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=False)
 
     def keras_nn(self):
         """
@@ -316,9 +315,6 @@ class NeuralNetworkLinearRegression(MachineLearning):
         """
         function for defining empty arrays for k-fold cross-validation
         """
-
-        # store predictions for each k-fold
-        self.predictions = []
 
         self.acc_train = np.zeros((len(self.epochs), 2))
         self.acc_test  = np.zeros((len(self.epochs), 2))

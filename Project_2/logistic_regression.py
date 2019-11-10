@@ -183,13 +183,9 @@ class LogisticRegression(MachineLearning):
         """
 
         if not self.benchmark:
-            plotting_function.accuracy_kfold(self.epochs,self.acc_train,self.acc_test,savefig=True)
-            plotting_function.cost_kfold(self.epochs,self.cost_train,self.cost_test,savefig=True)
+            plotting_function.accuracy_kfold(self.epochs,self.acc_train,self.acc_test,savefig=False)
+            plotting_function.cost_kfold(self.epochs,self.cost_train,self.cost_test,savefig=False)
         else:
-            print(self.sgd_train.shape)
-            print(self.sgd_test.shape)
-            print(self.dc_train.shape)
-            print(self.dc_test.shape)
             plotting_function.benchmark_sgd(self.sgd_train, self.sgd_test, self.dc_train, self.dc_test, self.folds, savefig=False)
 
 

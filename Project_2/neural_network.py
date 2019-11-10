@@ -108,7 +108,6 @@ class NeuralNetwork(MachineLearning):
 
             i += 1
 
-
     def backpropagation(self, y):
         """
         function performing back-propagation
@@ -181,7 +180,6 @@ class NeuralNetwork(MachineLearning):
 
                 # prediction from test data
                 self.feed_forward(self.X_test)
-                self.predictions.append(self.a[-1])
                 self.acc_epoch_test[j]  = self.accuracy_nn(self.y_test, self.a[-1])
                 self.cost_epoch_test[j] = self.binary_cross_entropy(self.y_test, self.a[-1], self.weights[-1], self.lamb)
 
@@ -239,7 +237,6 @@ class NeuralNetwork(MachineLearning):
         self.X = self.X[random_index,:]
         self.y = self.y[random_index,:]
 
-        # self.bootstrap()
         self.kfold()
 
         self.statistical_analysis()
@@ -281,14 +278,13 @@ class NeuralNetwork(MachineLearning):
         np.random.shuffle(random_index)
         self.X = self.X[random_index,:]
         self.y = self.y[random_index,:]
-        print(self.y)
         self.X = self.X[20:22,:]
         self.y = self.y[20:22,:]
 
         self.kfold()
 
-        plotting_function.golden_test1(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
-        # plotting_function.golden_test1(self.epochs, self.acc_train[:,1], self.acc_test[:,1], savefig=True)
+        plotting_function.golden_test1(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=False)
+        plotting_function.golden_test1(self.epochs, self.acc_train[:,1], self.acc_test[:,1], savefig=False)
 
         # define larger sample
         self.X = self.X_unshuffled[0:500,:]
@@ -299,9 +295,9 @@ class NeuralNetwork(MachineLearning):
         np.random.shuffle(random_index)
         self.y = self.y[random_index,:]
 
-        # self.kfold()
+        self.kfold()
 
-        # plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=True)
+        plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=False)
 
     def statistical_analysis(self):
         """
@@ -311,10 +307,10 @@ class NeuralNetwork(MachineLearning):
         # validation of neural network
         if not self.benchmark:
             # plot accuracy and cost for training and test data
-            plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=True)
-            plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=True)
+            plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=False)
+            plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=False)
         else:
-            plotting_function.accuracy_keras(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=True)
+            plotting_function.accuracy_keras(self.last_acc_train, self.last_acc_test, self.keras_acc_train, self.keras_acc_test, self.folds, savefig=False)
 
     def temporary_arrays(self):
         """
@@ -330,9 +326,6 @@ class NeuralNetwork(MachineLearning):
         """
         function for defining empty arrays for k-fold cross-validation
         """
-
-        # store predictions for each k-fold
-        self.predictions = []
 
         # empty arrays to store accuracy for every epoch
         self.acc_train = np.zeros((len(self.epochs), 2))

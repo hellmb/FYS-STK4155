@@ -60,8 +60,8 @@ if __name__ == '__main__':
         num_targets = np.sum(y,axis=0)
         print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
 
-        nn = NeuralNetwork(X, y, eta=0.01, lamb=0.0001, minibatch_size=50, epochs=100, folds=10, nodes=[50], benchmark=False)
-        nn.mlp()
+        # nn = NeuralNetwork(X, y, eta=0.01, lamb=0.0001, minibatch_size=50, epochs=100, folds=10, nodes=[50], benchmark=False)
+        # nn.mlp()
 
         explore_regularisation = False
         if explore_regularisation:
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         # create targets by ravelling y
         y = np.ravel(y)
 
-        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0.001, minibatch_size=150, epochs=200, folds=10, nodes=[8,4,3], benchmark=False)
+        nn = NeuralNetworkLinearRegression(X, y, mx, my, eta=0.01, lamb=0.001, minibatch_size=150, epochs=200, folds=10, nodes=[8,4,3], benchmark=True)
         nn.mlp()
 
         explore_regularisation = False

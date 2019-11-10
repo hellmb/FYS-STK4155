@@ -331,8 +331,8 @@ def test_regularisation(epoch, acc_train, acc_test, lambdas, savefig=False):
 
     fig = plt.figure(figsize=(10,6))
     for i in range(len(lambdas)):
-        plt.plot(epoch, acc_train[i][:], color=color_train[i], linestyle='--', label=r'Train, $\lambda= %s$' % str(lambdas[i]))
-        plt.plot(epoch, acc_test[i][:], color=color_test[i], label=r'Test, $\lambda= %s$' % str(lambdas[i]))
+        plt.plot(epoch, acc_train[i][:]*100, color=color_train[i], linestyle='--', label=r'Train, $\lambda= %s$' % str(lambdas[i]))
+        plt.plot(epoch, acc_test[i][:]*100, color=color_test[i], label=r'Test, $\lambda= %s$' % str(lambdas[i]))
     plt.title(r'Accuracy for different values of $\lambda$', fontsize=20)
     plt.xlabel('Epoch', fontsize=15)
     plt.ylabel(r'$\epsilon$ [%]', fontsize=15)

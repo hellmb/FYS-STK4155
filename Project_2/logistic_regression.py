@@ -1,9 +1,7 @@
-import plotting_function
 import numpy as np
-import matplotlib.pyplot as plt
+import plotting_function
 from machine_learning import MachineLearning
 from sklearn.model_selection import KFold
-# from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier
 from warnings import filterwarnings
 
@@ -16,6 +14,12 @@ class LogisticRegression(MachineLearning):
     def __init__(self, X, y, eta, minibatch_size, epochs, folds, benchmark=False):
         """
         initialise the instance of the class
+        param X: features
+        param y: targets
+        param eta: learning rate
+        param minibatch_size: size of mini-batches
+        param epochs: number of epochs
+        param folds: number of k-folds
         """
 
         # initialise features and targets
@@ -175,11 +179,11 @@ class LogisticRegression(MachineLearning):
 
         self.kfold()
 
-        self.statistical_analysis()
+        self.plot_results()
 
-    def statistical_analysis(self):
+    def plot_results(self):
         """
-        statistical analysis of models
+        plot results
         """
 
         if not self.benchmark:
@@ -187,6 +191,3 @@ class LogisticRegression(MachineLearning):
             plotting_function.cost_kfold(self.epochs,self.cost_train,self.cost_test,savefig=False)
         else:
             plotting_function.benchmark_sgd(self.sgd_train, self.sgd_test, self.dc_train, self.dc_test, self.folds, savefig=False)
-
-
-# end of code

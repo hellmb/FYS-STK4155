@@ -10,49 +10,12 @@ from mpl_toolkits.mplot3d import Axes3D
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
-def accuracy_epoch(epoch, acc_train, acc_test, savefig=False):
-    """
-    plot the accuracy versus epoch
-    param epoch: 1D array of epochs
-    param cost_train: 2D array of accuracy for training data
-    param cost_test: 2D array of accuracy for test data
-    """
-
-    fig = plt.figure(figsize=(10,6))
-    plt.plot(epoch, acc_test[:,0], color='#EC407A', label='Test')
-    plt.plot(epoch, acc_train[:,0], color='#AD1457', label='Train')
-    plt.title('Accuracy as a function of epoch', fontsize=20)
-    plt.xlabel('Epoch', fontsize=15)
-    plt.ylabel(r'$\epsilon$', fontsize=15)
-    plt.legend(loc='lower right', fontsize=15)
-    plt.show()
-
-    if savefig:
-        fig.savefig('Figures/accuracy_epochs.png', dpi=200)
-
-def cost_epoch(epoch, cost_train, cost_test, savefig=False):
-    """
-    plot the cost/loss versus epoch
-    param epoch: 1D array of epochs
-    param cost_train: 2D array of cost for training data
-    param cost_test: 2D array of cost for test data
-    """
-
-    fig = plt.figure(figsize=(10,6))
-    plt.plot(epoch, cost_test[:,0], color='#EC407A', label='Test')
-    plt.plot(epoch, cost_train[:,0], color='#AD1457', label='Train')
-    plt.title('Cost/loss as a function of epoch', fontsize=20)
-    plt.xlabel('Epoch', fontsize=15)
-    plt.ylabel(r'$C(\beta)$', fontsize=15)
-    plt.legend(loc='upper right', fontsize=15)
-    plt.show()
-
-    if savefig:
-        fig.savefig('Figures/loss_epochs.png', dpi=200)
-
 def accuracy_kfold(epoch, acc_train, acc_test, savefig=False):
     """
     plot accuracy for all k-folds
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
     """
 
     color_train = ['#880E4F','#006064']
@@ -77,6 +40,9 @@ def accuracy_kfold(epoch, acc_train, acc_test, savefig=False):
 def cost_kfold(epoch, cost_train, cost_test, savefig=False):
     """
     plot cost/loss for all k-folds
+    param epoch: array of epochs
+    param cost_train: training cost
+    param cost_test: test cost
     """
 
     color_train = ['#880E4F','#006064']
@@ -99,6 +65,11 @@ def cost_kfold(epoch, cost_train, cost_test, savefig=False):
 def accuracy_keras(acc_train, acc_test, keras_acc_train, keras_acc_test, folds, savefig=False):
     """
     plot maximum accuracy scores from keras and developed neural network
+    param acc_train: training accuracy
+    param acc_test: test accuracy
+    param keras_acc_train: training accuracy, keras
+    param keras_acc_test: test accuracy, keras
+    param folds: number of k-folds
     """
 
     x = np.linspace(1, folds, folds)
@@ -125,6 +96,11 @@ def accuracy_keras(acc_train, acc_test, keras_acc_train, keras_acc_test, folds, 
 def accuracy_scikit(acc_train, acc_test, sk_acc_train, sk_acc_test, folds, savefig=False):
     """
     plot maximum accuracy scores from scikit-learn and developed neural network
+    param acc_train: training accuracy
+    param acc_test: test accuracy
+    param sk_acc_train: training accuracy, scikit-learn
+    param sk_acc_test: test accuracy, scikit-learn
+    param folds: number of k-folds
     """
 
     x = np.linspace(1, folds, folds)
@@ -151,6 +127,10 @@ def accuracy_scikit(acc_train, acc_test, sk_acc_train, sk_acc_test, folds, savef
 def plot_surface(x, y, zt, zp, savefig=False):
     """
     plot terrain data
+    param x: meshgrid, x
+    param y: meshgrid, y
+    param zt: meshgrid, target
+    param zp: meshgrid, prediction
     """
 
     # plot figure
@@ -207,7 +187,10 @@ def plot_surface(x, y, zt, zp, savefig=False):
 
 def golden_test1(epoch, acc_train, acc_test, savefig=False):
     """
-    plot first golden test
+    first golden test
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
     """
 
     color_train = ['#880E4F']
@@ -227,17 +210,20 @@ def golden_test1(epoch, acc_train, acc_test, savefig=False):
     if savefig:
         fig.savefig('Benchmarks/golden_test1.png', dpi=200)
 
-def golden_test2(epoch, cost_train, cost_test, savefig=False):
+def golden_test2(epoch, acc_train, acc_test, savefig=False):
     """
-    plot second golden test
+    second golden test
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
     """
 
     color_train = ['#880E4F']
     color_test  = ['#EC407A']
 
     fig = plt.figure(figsize=(10,6))
-    plt.plot(epoch, cost_train, color=color_train[0], label=r'Train')
-    plt.plot(epoch, cost_test, color=color_test[0], label=r'Test')
+    plt.plot(epoch, acc_train, color=color_train[0], label=r'Train')
+    plt.plot(epoch, acc_test, color=color_test[0], label=r'Test')
     plt.title(r'Neural network validation: shuffling labels', fontsize=20)
     plt.xlabel('Epoch', fontsize=15)
     plt.ylabel(r'Accuracy', fontsize=15)
@@ -252,6 +238,11 @@ def golden_test2(epoch, cost_train, cost_test, savefig=False):
 def benchmark_sgd(sgd_train, sgd_test, dc_train, dc_test, folds, savefig=False):
     """
     function for plotting accuracy (benchmark)
+    param sgd_train: training accuracy, SGDClassifier
+    param sgd_test: test accuracy, SGDClassifier
+    param dc_train: training accuracy, developed code
+    param dc_test: test accuracy, developed code
+    param folds: number of k-folds
     """
     print('Hello')
     x = np.linspace(1, folds, folds)
@@ -276,6 +267,7 @@ def benchmark_sgd(sgd_train, sgd_test, dc_train, dc_test, folds, savefig=False):
 def plot_3d_hist(df):
     """
     plot 3d histogram of credit card data features
+    param df: dataframe, pandas
     """
 
     pay0 = df.loc[:, df.columns == 'PAY_0'].values
@@ -288,7 +280,6 @@ def plot_3d_hist(df):
     df_pay    = [pay0, pay2, pay3, pay4, pay5, pay6]
     df_colors = ['#880E4F', '#311B92', '#0D47A1', '#006064', '#1B5E20', '#FF6F00']
     df_space  = [0, 10, 20, 30, 40, 50]
-    # df_labels = ['PAY_0','PAY_2','PAY_3','PAY_4','PAY_5','PAY_6']
 
     fig = plt.figure(figsize=(8,6))
     ax  = fig.add_subplot(111, projection='3d')
@@ -324,6 +315,10 @@ def plot_3d_hist(df):
 def test_regularisation(epoch, acc_train, acc_test, lambdas, savefig=False):
     """
     plot accuracy for train and test data for different regularisation hyper parameters
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
+    param lambdas: lambda, list
     """
 
     color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
@@ -342,9 +337,13 @@ def test_regularisation(epoch, acc_train, acc_test, lambdas, savefig=False):
     if savefig:
         fig.savefig('Figures/lambdas_accuracy.png', dpi=200)
 
-def test_eta(epoch, acc_train, acc_test, etas, savefig=True):
+def test_eta(epoch, acc_train, acc_test, etas, savefig=False):
     """
     plot accuracy for train and test data for different learning rates
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
+    param eta: lambda, eta
     """
 
     color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
@@ -363,9 +362,13 @@ def test_eta(epoch, acc_train, acc_test, etas, savefig=True):
     if savefig:
         fig.savefig('Figures/etas_accuracy.png', dpi=200)
 
-def test_minibatches(epoch, acc_train, acc_test, minibatches, savefig=True):
+def test_minibatches(epoch, acc_train, acc_test, minibatches, savefig=False):
     """
     plot accuracy for train and test data for different learning rates
+    param epoch: array of epochs
+    param acc_train: training accuracy
+    param acc_test: test accuracy
+    param minibatches: size of mini-batches, list
     """
 
     color_train = ['#880E4F','#311B92','#0D47A1','#006064','#1B5E20','#FF6F00','#BF360C']
@@ -383,5 +386,3 @@ def test_minibatches(epoch, acc_train, acc_test, minibatches, savefig=True):
 
     if savefig:
         fig.savefig('Figures/minibatch_accuracy.png', dpi=200)
-
-# end of code

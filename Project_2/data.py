@@ -66,10 +66,6 @@ def preprocessing(remove_data=False):
     # transform X
     features = preprocessor.fit_transform(features, targets)
 
-    # scale data
-    # ss  = StandardScaler()
-    # features2 = ss.fit_transform(features2)
-
     return features, targets
 
 def onehotencode(targets):

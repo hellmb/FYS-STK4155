@@ -1,9 +1,7 @@
-import sys
 import plotting_function
 import numpy as np
 from machine_learning import MachineLearning
 from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD
@@ -21,6 +19,11 @@ class NeuralNetwork(MachineLearning):
         initialise the instance of the class
         param X: features
         param y: targets
+        param eta: learning rate
+        param lamd: regularisation hyper-parameter
+        param minibatch_size: size of mini-batches
+        param epochs: number of epochs
+        param folds: number of k-folds
         param nodes: list of the number of nodes in each hidden layer
         """
 
@@ -60,7 +63,6 @@ class NeuralNetwork(MachineLearning):
     def weights_biases(self):
         """
         function that calculates the weights and biases
-        all weights and biases for every layer are defined in lists
         """
 
         self.weights = []
@@ -72,9 +74,7 @@ class NeuralNetwork(MachineLearning):
             else:
                 input_to_node = w.shape[1]
 
-            # w = np.random.randn(input_to_node,self.nodes[n]) * np.sqrt(1./input_to_node)
             w = (2/np.sqrt(input_to_node)) * np.random.random_sample((input_to_node,self.nodes[n])) - (1/np.sqrt(input_to_node))
-            # w = np.random.randn(input_to_node,self.nodes[n]) * np.sqrt(2/(input_to_node+self.nodes[n]))
             self.weights.append(np.array(w))
 
             b = np.zeros(self.nodes[n]) #+ 0.01
@@ -239,7 +239,7 @@ class NeuralNetwork(MachineLearning):
 
         self.kfold()
 
-        self.statistical_analysis()
+        self.plot_results()
 
     def keras_nn(self):
         """
@@ -299,9 +299,9 @@ class NeuralNetwork(MachineLearning):
 
         plotting_function.golden_test2(self.epochs, self.acc_train[:,0], self.acc_test[:,0], savefig=False)
 
-    def statistical_analysis(self):
+    def plot_results(self):
         """
-        statistical analysis of models
+        plot results
         """
 
         # validation of neural network
@@ -342,12 +342,3 @@ class NeuralNetwork(MachineLearning):
         # empty arrays to store accuracy for every epoch
         self.keras_acc_train = np.zeros(self.folds)
         self.keras_acc_test  = np.zeros(self.folds)
-
-
-
-
-
-
-
-
-# end of code

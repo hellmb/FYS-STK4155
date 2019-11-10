@@ -21,7 +21,6 @@ class MachineLearning:
         """
 
         # add regularisation to the cost
-        # frobenius_norm = np.linalg.norm(w[-1])
         mse = np.sum((yt - yp)**2)/len(yt) + lamb/len(yt) * np.sum(np.square(w[-1]))
 
         return mse
@@ -41,21 +40,25 @@ class MachineLearning:
     def accuracy_log(self, y, y_predict):
         """
         function for calculating the accuracy score (logistic regression)
+        param yt: targets
+        param yp: predicted targets
         """
 
-        len_y = len(np.ravel(y))
+        len_y = len(np.ravel(yt))
 
         # set values of y_predict to binary integers
-        y_predict[y_predict < 0.5] = 0
-        y_predict[y_predict >= 0.5] = 1
+        yp[yp < 0.5] = 0
+        yp[yp >= 0.5] = 1
 
-        accuracy = np.sum(y == y_predict.astype(int))/len_y
+        accuracy = np.sum(yt == y_preypdict.astype(int))/len_y
 
         return accuracy
 
     def accuracy_nn(self, yt, yp):
         """
         function for calculating the accuracy score (neural network)
+        param yt: targets
+        param yp: predicted targets
         """
 
         # find maximum target and prediction arrays
@@ -69,6 +72,7 @@ class MachineLearning:
     def relu(self, theta):
         """
         rectified linear unit (ReLU) activation function
+        param theta: input to function
         """
 
         relu = np.maximum(0, theta)
@@ -78,6 +82,7 @@ class MachineLearning:
     def relu_derivative(self, theta):
         """
         derivative of the ReLU activation function
+        param theta: input to function
         """
 
         theta[theta <= 0] = 0
@@ -88,6 +93,7 @@ class MachineLearning:
     def sigmoid(self, theta):
         """
         calculate the sigmoid function
+        param theta: input to function
         """
 
         sigma = np.exp(theta)/(1. + np.exp(theta))
@@ -97,6 +103,7 @@ class MachineLearning:
     def softmax(self, theta):
         """
         calculate probabilities using the sofmax function
+        param theta: input to function
         """
 
         softmax = np.exp(theta)/np.sum(np.exp(theta),axis=1,keepdims=True)

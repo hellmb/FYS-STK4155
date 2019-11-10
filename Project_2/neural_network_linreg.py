@@ -1,6 +1,5 @@
-import sys
-import plotting_function
 import numpy as np
+import plotting_function
 from machine_learning import MachineLearning
 from sklearn.model_selection import train_test_split, KFold
 from tensorflow.keras.models import Sequential
@@ -20,6 +19,13 @@ class NeuralNetworkLinearRegression(MachineLearning):
         initialise the instance of the class
         param X: features
         param y: targets
+        param mx: meshgrid, x
+        param my: meshgrid, y
+        param eta: learning rate
+        param lamd: regularisation hyper-parameter
+        param minibatch_size: size of mini-batches
+        param epochs: number of epochs
+        param folds: number of k-folds
         param nodes: list of the number of nodes in each hidden layer
         """
 
@@ -245,11 +251,11 @@ class NeuralNetworkLinearRegression(MachineLearning):
         self.kfold()
 
         # statistical analysis
-        self.statistical_analysis()
+        self.plot_results()
 
-    def statistical_analysis(self):
+    def plot_results(self):
         """
-        statistical analysis on best model
+        plot results
         """
 
         # define best weights and biases
@@ -330,5 +336,3 @@ class NeuralNetworkLinearRegression(MachineLearning):
         # empty arrays to store accuracy for every epoch
         self.keras_acc_train = np.zeros(self.folds)
         self.keras_acc_test  = np.zeros(self.folds)
-
-# end of code

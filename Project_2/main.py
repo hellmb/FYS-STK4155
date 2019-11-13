@@ -33,7 +33,7 @@ if __name__ == '__main__':
         y = data.onehotencode(y)
 
         num_targets = np.sum(y,axis=0)
-        print('Ratio of targets [0,1]: ',num_targets[0]/np.sum(num_targets))
+        print('Ratio of default payment: ',num_targets[0]/np.sum(num_targets))
 
         nn = NeuralNetwork(X, y, eta=0.01, lamb=0.0001, minibatch_size=50, epochs=100, folds=10, nodes=[50], benchmark=False)
         nn.mlp()

@@ -2,6 +2,7 @@ import plotting_function
 import numpy as np
 from machine_learning import MachineLearning
 from sklearn.model_selection import KFold
+from sklearn.metrics import precision_recall_curve, auc, roc_auc_score, roc_curve
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD
@@ -177,6 +178,7 @@ class NeuralNetwork(MachineLearning):
                 self.feed_forward(self.X_train)
                 self.acc_epoch_train[j]  = self.accuracy_nn(self.y_train, self.a[-1])
                 self.cost_epoch_train[j] = self.binary_cross_entropy(self.y_train, self.a[-1], self.weights[-1], self.lamb)
+                self.a_train = self.a
 
                 # prediction from test data
                 self.feed_forward(self.X_test)
@@ -306,6 +308,7 @@ class NeuralNetwork(MachineLearning):
 
         # validation of neural network
         if not self.benchmark:
+
             # plot accuracy and cost for training and test data
             plotting_function.accuracy_kfold(self.epochs, self.acc_train, self.acc_test, savefig=False)
             plotting_function.cost_kfold(self.epochs, self.cost_train, self.cost_test, savefig=False)
@@ -342,3 +345,5 @@ class NeuralNetwork(MachineLearning):
         # empty arrays to store accuracy for every epoch
         self.keras_acc_train = np.zeros(self.folds)
         self.keras_acc_test  = np.zeros(self.folds)
+
+

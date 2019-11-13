@@ -3,6 +3,8 @@ import plotting_function
 from machine_learning import MachineLearning
 from sklearn.model_selection import KFold
 from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
 from warnings import filterwarnings
 
 class LogisticRegression(MachineLearning):
@@ -25,6 +27,8 @@ class LogisticRegression(MachineLearning):
         # initialise features and targets
         self.X = X
         self.y = y
+
+        self.y_unshuffled = self.y
 
         # set up quantities
         self.n            = self.y.shape[0]                  # number of data points
@@ -115,11 +119,11 @@ class LogisticRegression(MachineLearning):
                     beta = self.gradient_descent(self.X_train[i:i+self.minibatch_sz,:], self.y_train[i:i+self.minibatch_sz,:], beta, self.eta, self.minibatch_sz)
 
                 # prediction from training data
-                ypred_train = np.dot(self.X_train,beta)
-                ypred_test  = np.dot(self.X_test,beta)
+                self.ypred_train = np.dot(self.X_train,beta)
+                self.ypred_test  = np.dot(self.X_test,beta)
 
-                self.acc_epoch_train[j] = self.accuracy_log(self.y_train, ypred_train)
-                self.acc_epoch_test[j]  = self.accuracy_log(self.y_test, ypred_test)
+                self.acc_epoch_train[j] = self.accuracy_log(self.y_train, self.ypred_train)
+                self.acc_epoch_test[j]  = self.accuracy_log(self.y_test, self.ypred_test)
                 self.cost_epoch_train[j] = self.cost_function(self.X_train, self.y_train, beta)
                 self.cost_epoch_test[j]  = self.cost_function(self.X_test, self.y_test, beta)
 
@@ -148,6 +152,14 @@ class LogisticRegression(MachineLearning):
 
                 # update min_accuracy
                 min_accuracy = self.acc_epoch_test[-1]
+
+                # calculate fpr and trp for best run
+                self.fpr_train, self.tpr_train, threshold_train = roc_curve(self.y_train, self.ypred_train)
+                self.fpr_test, self.tpr_test, threshold_test = roc_curve(self.y_test, self.ypred_test)
+                self.train_best = self.y_train
+                self.test_best = self.y_test
+                self.ypred_train_best = self.ypred_train
+                self.ypred_test_best = self.ypred_test
 
             # plot accuracy for benchmarking
             if self.benchmark:
@@ -187,6 +199,7 @@ class LogisticRegression(MachineLearning):
         """
 
         if not self.benchmark:
+            # plot accuracy and cost for min/max accuracy iteration
             plotting_function.accuracy_kfold(self.epochs,self.acc_train,self.acc_test,savefig=False)
             plotting_function.cost_kfold(self.epochs,self.cost_train,self.cost_test,savefig=False)
         else:

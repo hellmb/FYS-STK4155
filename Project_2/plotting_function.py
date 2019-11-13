@@ -386,3 +386,19 @@ def test_minibatches(epoch, acc_train, acc_test, minibatches, savefig=False):
 
     if savefig:
         fig.savefig('Figures/minibatch_accuracy.png', dpi=200)
+
+def plot_roc_curve(fpr, tpr, x, y):
+    """
+    plot receiver operating characteristics (ROC) curve
+    param fpr: false positive rates
+    param tpr: true positive rates
+    """
+
+    plt.plot(fpr, tpr, label='ROC')
+    plt.plot(x, y, label='Gains')
+    plt.plot([0,1],[0,1], linestyle='--', label='Baseline')
+    plt.title('Receiver Operating Characteristic (ROC) curve')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc='lower right')
+    plt.show()

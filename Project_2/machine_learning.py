@@ -37,7 +37,7 @@ class MachineLearning:
 
         return r2score
 
-    def accuracy_log(self, y, y_predict):
+    def accuracy_log(self, yt, yp):
         """
         function for calculating the accuracy score (logistic regression)
         param yt: targets
@@ -50,7 +50,7 @@ class MachineLearning:
         yp[yp < 0.5] = 0
         yp[yp >= 0.5] = 1
 
-        accuracy = np.sum(yt == y_preypdict.astype(int))/len_y
+        accuracy = np.sum(yt == yp.astype(int))/len_y
 
         return accuracy
 

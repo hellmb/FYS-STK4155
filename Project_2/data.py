@@ -32,6 +32,7 @@ def preprocessing(remove_data=False):
         df = df.drop(df[df.MARRIAGE < 1].index)
         df = df.drop(df[df.MARRIAGE > 3].index)
 
+        # code for removing ungategorised features from PAY_*
         # df_pay = [df.PAY_0, df.PAY_2, df.PAY_3, df.PAY_4, df.PAY_5, df.PAY_6]
         # vals   = [-2, 0]
         # for s in df_pay:

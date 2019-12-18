@@ -1,5 +1,3 @@
-import sys
-import random
 import numpy as np
 from mpi4py import MPI
 
@@ -78,7 +76,7 @@ class ParallelKMeansClustering():
         elif self.init_centroid == 'kmeans++':
 
             self.centroids = np.zeros((self.k, self.data.shape[-1]))
-            np.random.seed(30)
+
             random_index = np.random.choice(self.data.shape[0])
 
             self.centroids[0] = self.data[random_index]

@@ -137,13 +137,7 @@ if __name__ == '__main__':
     if optimal_centroid:
 
         # import training data
-        file = open('files/cube_training_scans.pickle', 'rb')
-        data = pickle.load(file)
-        file.close()
-
-        # reshape data to fit centroid
-        sz = data.shape
-        cube = np.reshape(data, (sz[0]*sz[1]*sz[2], sz[-1]))
+        cube = dt.sst_cube(purpose='training')
 
         wcss_score = np.zeros(10)
         for j in range(10):
@@ -169,13 +163,8 @@ if __name__ == '__main__':
         plot_results.various_clusters(centroids, method='dev', savefig=False)
 
     # make animation highlighting the pixels of clusters with high intensity in the centroids
-    make_animation = True
+    make_animation = False
     if make_animation:
-
-        # import files
-        # file1 = open('files/cube_stokes_i.pickle', 'rb')
-        # data = pickle.load(file1)
-        # file1.close()
 
         data = dt.sst_cube(purpose='full_run')
         centroids = dt.centroid_data(purpose='dev')
@@ -183,7 +172,7 @@ if __name__ == '__main__':
         # set wavelength point
         wav = 3
 
-        # animate_time_series(data, centroids, n_clusters, wav, savefig=True)
+        animate_time_series(data, centroids, n_clusters, wav, savefig=True)
         # action_shots(data, centroids, n_clusters, wav)
 
     # analyse Scikit-Learn centroids

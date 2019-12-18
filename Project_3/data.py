@@ -22,7 +22,7 @@ def sst_cube(purpose='training'):
 
     if purpose == 'training':
         # import file
-        file = open('files/cube_training_scans.pickle', 'rb')
+        file = open('files_all/cube_training_scans.pickle', 'rb')
         data = pickle.load(file)
         file.close()
         data = data[:,:,3:8,:]
@@ -32,7 +32,7 @@ def sst_cube(purpose='training'):
         data = np.reshape(data, (sz[0] * sz[1] * sz[2], sz[-1]))
     elif purpose == 'full_run':
         # import file
-        file = open('files/cube_stokes_i.pickle', 'rb')
+        file = open('files_all/cube_stokes_i.pickle', 'rb')
         data = pickle.load(file)
         file.close()
     else:

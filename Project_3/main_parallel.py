@@ -1,7 +1,5 @@
 import sys
 import data
-import pickle
-import plot_results
 import numpy as np
 from mpi4py import MPI
 from kmeans_parallel import ParallelKMeansClustering
@@ -15,10 +13,10 @@ if __name__ == '__main__':
 
     if rank == 0:
         if len(sys.argv) == 1:
-            print('No argument passed. Valid input arguments are "simple_data", "training_data" and "full_data".')
+            print('No argument passed. Valid input arguments are "simple_data" and "training_data".')
             sys.exit()
-        if sys.argv[1] != 'simple_data' and sys.argv[1] != 'training_data' and sys.argv[1] != 'full_data':
-            print('Invalid input argument. Valid input arguments are "simple_data", "training_data" and "full_data".')
+        if sys.argv[1] != 'simple_data' and sys.argv[1] != 'training_data':
+            print('Invalid input argument. Valid input arguments are "simple_data" and "training_data".')
             sys.exit()
 
         # import dataset
@@ -26,17 +24,15 @@ if __name__ == '__main__':
             data_set = data.simple_data()
         elif sys.argv[1] == 'training_data':
             data_set = data.sst_cube(purpose='training')
-        elif sys.argv[1] == 'full_data':
-            data_set = data.sst_cube(purpose='full_run')
 
         # define list to store mean standard deviation
         store_mean_std = []
     else:
         if len(sys.argv) == 1:
-            print('No argument passed. Valid input arguments are "simple_data", "training_data" and "full_data".')
+            print('No argument passed. Valid input arguments are "simple_data" and "training_data".')
             sys.exit()
-        if sys.argv[1] != 'simple_data' and sys.argv[1] != 'training_data' and sys.argv[1] != 'full_data':
-            print('Invalid input argument. Valid input arguments are "simple_data", "training_data" and "full_data".')
+        if sys.argv[1] != 'simple_data' and sys.argv[1] != 'training_data':
+            print('Invalid input argument. Valid input arguments are "simple_data" and "training_data".')
             sys.exit()
         data_set = None
 
@@ -83,29 +79,11 @@ if __name__ == '__main__':
                 store_mean_std.append(run.mean_std)
                 end_centroid = run.centroids
 
-                # write to file
-                # file = open('files/end_centroid'+str(i)+'.pickle', 'wb')
-                # pickle.dump(end_centroid, file, protocol=4)
-                # file.close()
-
             i += 1
 
         if rank == 0:
             store_mean_std = np.array(store_mean_std)
             k_range = np.linspace(10, k, len(store_mean_std))
-            # plot_results.decide_n_clusters(store_mean_std, k_range, savefig=True)
-
-    elif sys.argv[1] == 'full_data':
-        # do stuff
-        k = 50
-        run = ParallelKMeansClustering(data_set,
-                                       mpi_comm=mpi_comm,
-                                       n_procs=n_procs,
-                                       rank=rank,
-                                       k=k,
-                                       init_centroid='kmeans++',
-                                       max_iter=300)
-        run.fit()
 
     if rank == 0:
         # finalise mpi

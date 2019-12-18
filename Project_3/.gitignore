@@ -1,0 +1,15 @@
+__pycache__/
+*.DS_Store
+data.pyc
+debug.py
+kmeans_old.py
+kmeans.py
+sftp-config.json
+test_sil.py
+figures/
+files_all/
+movies/
+report/
+ssh_files/
+.gitignore.swp
+.idea/
